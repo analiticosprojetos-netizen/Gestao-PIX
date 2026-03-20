@@ -1,46 +1,55 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from 'lucide-react';
 import { showSuccess } from "@/utils/toast";
+import { Bill } from '@/types/bill';
+import { format } from 'date-fns';
 
-interface AddBillDialogProps {
-  onAdd: (bill: { title: string; amount: number; dueDate: string }) => void;
+interface BillDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: any) => void;
+  bill?: Bill;
 }
 
-const AddBillDialog = ({ onAdd }: AddBillDialogProps) => {
-  const [open, setOpen] = useState(false);
+const BillDialog = ({ open, onOpenChange, onSubmit, bill }: BillDialogProps) => {
   const [formData, setFormData] = useState({ title: '', amount: '', dueDate: '' });
+
+  useEffect(() => {
+    if (bill) {
+      setFormData({
+        title: bill.title,
+        amount: bill.amount.toString(),
+        dueDate: format(bill.dueDate, 'yyyy-MM-dd')
+      });
+    } else {
+      setFormData({ title: '', amount: '', dueDate: '' });
+    }
+  }, [bill, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.amount || !formData.dueDate) return;
     
-    onAdd({
+    onSubmit({
       title: formData.title,
       amount: parseFloat(formData.amount),
-      dueDate: formData.dueDate
+      dueDate: new Date(formData.dueDate + 'T12:00:00') // Evitar problemas de timezone
     });
     
-    setFormData({ title: '', amount: '', dueDate: '' });
-    setOpen(false);
-    showSuccess("Boleto cadastrado com sucesso!");
+    onOpenChange(false);
+    showSuccess(bill ? "Boleto atualizado!" : "Boleto cadastrado!");
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700">
-          <Plus size={28} />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] rounded-t-3xl sm:rounded-lg">
         <DialogHeader>
-          <DialogTitle>Novo Boleto</DialogTitle>
+          <DialogTitle>{bill ? 'Editar Boleto' : 'Novo Boleto'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
@@ -72,11 +81,13 @@ const AddBillDialog = ({ onAdd }: AddBillDialogProps) => {
               onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
             />
           </div>
-          <Button type="submit" className="w-full bg-indigo-600">Salvar Boleto</Button>
+          <Button type="submit" className="w-full bg-indigo-600">
+            {bill ? 'Salvar Alterações' : 'Salvar Boleto'}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default AddBillDialog;
+export default BillDialog;
