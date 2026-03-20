@@ -7,10 +7,12 @@ import { supabase } from '@/lib/supabase';
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (newSettings: AppSettings) => Promise<void>;
+  toggleTheme: () => void;
   loading: boolean;
 }
 
 const defaultSettings: AppSettings = {
+  theme: 'light',
   alerts: {
     sms: false,
     whatsapp: true,
@@ -35,6 +37,16 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
+
+  // Aplica a classe dark no HTML quando o tema muda
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (settings.theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [settings.theme]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -66,7 +78,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
       const { error } = await supabase
         .from('settings')
         .upsert({ 
-          id: 1, // Usando ID fixo para app de usuário único por enquanto
+          id: 1,
           config: newSettings 
         });
 
@@ -76,8 +88,13 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const toggleTheme = () => {
+    const newTheme = settings.theme === 'light' ? 'dark' : 'light';
+    updateSettings({ ...settings, theme: newTheme });
+  };
+
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, loading }}>
+    <SettingsContext.Provider value={{ settings, updateSettings, toggleTheme, loading }}>
       {children}
     </SettingsContext.Provider>
   );

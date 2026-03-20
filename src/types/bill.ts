@@ -5,10 +5,11 @@ export interface Bill {
   dueDate: Date;
   paid: boolean;
   category: string;
-  recurring: boolean; // Novo campo para boletos mensais
+  recurring: boolean;
 }
 
 export interface AppSettings {
+  theme: 'light' | 'dark'; // Adicionado tema
   alerts: {
     sms: boolean;
     whatsapp: boolean;
