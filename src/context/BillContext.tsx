@@ -2,67 +2,115 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Bill } from '@/types/bill';
+import { supabase } from '@/lib/supabase';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface BillContextType {
   bills: Bill[];
-  addBill: (bill: Omit<Bill, 'id' | 'paid'>) => void;
-  updateBill: (id: string, updates: Partial<Bill>) => void;
-  deleteBill: (id: string) => void;
-  togglePaid: (id: string) => void;
+  addBill: (bill: Omit<Bill, 'id' | 'paid'>) => Promise<void>;
+  updateBill: (id: string, updates: Partial<Bill>) => Promise<void>;
+  deleteBill: (id: string) => Promise<void>;
+  togglePaid: (id: string) => Promise<void>;
+  loading: boolean;
 }
 
 const BillContext = createContext<BillContextType | undefined>(undefined);
 
 export const BillProvider = ({ children }: { children: React.ReactNode }) => {
   const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Carregar dados iniciais do localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('alertaboleto_bills');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Converter strings de data de volta para objetos Date
-      const formatted = parsed.map((b: any) => ({
-        ...b,
-        dueDate: new Date(b.dueDate)
-      }));
-      setBills(formatted);
-    } else {
-      // Dados iniciais de exemplo
-      setBills([
-        { id: '1', title: 'Internet Fibra', amount: 99.90, dueDate: new Date(2025, 4, 15), paid: false, category: 'Geral' },
-      ]);
+  // Carregar boletos do Supabase
+  const fetchBills = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bills')
+        .select('*')
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setBills(data.map(b => ({
+          ...b,
+          dueDate: new Date(b.due_date)
+        })));
+      }
+    } catch (err) {
+      console.error("Erro ao buscar boletos:", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchBills();
   }, []);
 
-  // Salvar no localStorage sempre que mudar
-  useEffect(() => {
-    localStorage.setItem('alertaboleto_bills', JSON.stringify(bills));
-  }, [bills]);
+  const addBill = async (newBill: Omit<Bill, 'id' | 'paid'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('bills')
+        .insert([{
+          title: newBill.title,
+          amount: newBill.amount,
+          due_date: newBill.dueDate.toISOString(),
+          category: newBill.category,
+          paid: false
+        }])
+        .select();
 
-  const addBill = (newBill: Omit<Bill, 'id' | 'paid'>) => {
-    const bill: Bill = {
-      ...newBill,
-      id: Math.random().toString(36).substr(2, 9),
-      paid: false
-    };
-    setBills(prev => [bill, ...prev]);
+      if (error) throw error;
+      if (data) {
+        setBills(prev => [...data.map(b => ({ ...b, dueDate: new Date(b.due_date) })), ...prev]);
+        showSuccess("Boleto salvo no banco de dados!");
+      }
+    } catch (err) {
+      showError("Erro ao salvar boleto");
+    }
   };
 
-  const updateBill = (id: string, updates: Partial<Bill>) => {
-    setBills(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  const updateBill = async (id: string, updates: Partial<Bill>) => {
+    try {
+      const formattedUpdates: any = { ...updates };
+      if (updates.dueDate) formattedUpdates.due_date = updates.dueDate.toISOString();
+      delete formattedUpdates.dueDate;
+
+      const { error } = await supabase
+        .from('bills')
+        .update(formattedUpdates)
+        .eq('id', id);
+
+      if (error) throw error;
+      setBills(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+    } catch (err) {
+      showError("Erro ao atualizar");
+    }
   };
 
-  const deleteBill = (id: string) => {
-    setBills(prev => prev.filter(b => b.id !== id));
+  const deleteBill = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('bills')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setBills(prev => prev.filter(b => b.id !== id));
+      showSuccess("Boleto removido");
+    } catch (err) {
+      showError("Erro ao remover");
+    }
   };
 
-  const togglePaid = (id: string) => {
-    setBills(prev => prev.map(b => b.id === id ? { ...b, paid: !b.paid } : b));
+  const togglePaid = async (id: string) => {
+    const bill = bills.find(b => b.id === id);
+    if (!bill) return;
+    await updateBill(id, { paid: !bill.paid });
   };
 
   return (
-    <BillContext.Provider value={{ bills, addBill, updateBill, deleteBill, togglePaid }}>
+    <BillContext.Provider value={{ bills, addBill, updateBill, deleteBill, togglePaid, loading }}>
       {children}
     </BillContext.Provider>
   );
