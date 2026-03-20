@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, AlertCircle, Plus } from 'lucide-react';
+import { Calendar, AlertCircle, Plus, Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BillDialog from '@/components/bills/BillDialog';
 import { useBills } from '@/context/BillContext';
@@ -16,9 +16,17 @@ import { cn } from "@/lib/utils";
 const Index = () => {
   const { bills, addBill } = useBills();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   
-  // Ativa o sistema de notificações intensivas
   useNotificationEngine();
+
+  useEffect(() => {
+    // Verifica se o app já está instalado (standalone)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    if (!isStandalone) {
+      setShowInstallBanner(true);
+    }
+  }, []);
 
   const upcomingBills = bills
     .filter(b => !b.paid)
@@ -29,6 +37,30 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
+        {showInstallBanner && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-600 p-2 rounded-xl text-white">
+                <Download size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-indigo-900">Instalar App</p>
+                <p className="text-[10px] text-indigo-600">Para receber alertas e usar offline</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-indigo-400 h-8 w-8 p-0"
+                onClick={() => setShowInstallBanner(false)}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-xl">
           <p className="text-indigo-100 text-sm font-medium">Total pendente</p>
           <h2 className="text-3xl font-bold mt-1">

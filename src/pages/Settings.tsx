@@ -4,16 +4,16 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Volume2, Vibrate, PlayCircle, Phone, ShieldCheck, BellRing } from 'lucide-react';
+import { Smartphone, Volume2, Vibrate, PlayCircle, ShieldCheck, BellRing, Share, PlusSquare } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
   const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
 
   const requestPermission = async () => {
     if (!("Notification" in window)) {
@@ -25,33 +25,7 @@ const Settings = () => {
     setPermissionStatus(permission);
     
     if (permission === "granted") {
-      showSuccess("Notificações ativadas! Agora você receberá os alertas.");
-      // Tenta registrar o som no primeiro toque
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => console.log("Som 'destravado' para o futuro."));
-    } else {
-      showError("Permissão negada. Vá nas configurações do celular para ativar.");
-    }
-  };
-
-  const testAlert = () => {
-    if (permissionStatus === "granted") {
-      new Notification("Teste de Alerta", {
-        body: "As notificações do AlertaBoleto estão funcionando!",
-        icon: "/placeholder.svg"
-      });
-      showSuccess("Notificação enviada!");
-    } else {
-      showError("Ative as notificações no botão verde acima!");
-    }
-
-    if (settings.alerts.sound) {
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => showError("Toque na tela para permitir o som!"));
-    }
-
-    if (settings.alerts.vibration && "vibrate" in navigator) {
-      navigator.vibrate([200, 100, 200]);
+      showSuccess("Notificações ativadas!");
     }
   };
 
@@ -65,6 +39,34 @@ const Settings = () => {
   return (
     <AppShell>
       <div className="space-y-6">
+        {!isStandalone && (
+          <Card className="border-indigo-200 bg-indigo-50 shadow-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-indigo-900 text-sm flex items-center gap-2">
+                <Smartphone size={18} />
+                Como instalar no Celular
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-indigo-700 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="bg-white p-1 rounded border border-indigo-200">
+                  <Share size={14} className="text-indigo-600" />
+                </div>
+                <p>No <b>iPhone</b>, toque no botão de <b>Compartilhar</b> abaixo.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="bg-white p-1 rounded border border-indigo-200">
+                  <PlusSquare size={14} className="text-indigo-600" />
+                </div>
+                <p>Role para baixo e toque em <b>"Adicionar à Tela de Início"</b>.</p>
+              </div>
+              <p className="bg-indigo-600 text-white p-2 rounded-lg text-center font-bold">
+                Isso ativa o ícone e os alertas!
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 gap-3">
           {permissionStatus !== "granted" ? (
             <Button 
@@ -72,7 +74,7 @@ const Settings = () => {
               className="h-16 bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-3 font-bold rounded-2xl animate-pulse"
             >
               <BellRing size={24} />
-              ATIVAR NOTIFICAÇÕES AGORA
+              ATIVAR ALERTAS AGORA
             </Button>
           ) : (
             <Button 
@@ -80,18 +82,9 @@ const Settings = () => {
               className="h-16 bg-slate-100 text-emerald-600 border border-emerald-200 flex items-center justify-center gap-3 font-bold rounded-2xl"
             >
               <ShieldCheck size={24} />
-              NOTIFICAÇÕES ATIVADAS
+              ALERTAS ATIVADOS
             </Button>
           )}
-          
-          <Button 
-            onClick={testAlert}
-            variant="outline" 
-            className="h-14 border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center gap-2 font-bold rounded-2xl"
-          >
-            <PlayCircle size={20} />
-            Testar Alerta Sonoro
-          </Button>
         </div>
 
         <Card className="border-none shadow-sm overflow-hidden">
@@ -99,13 +92,6 @@ const Settings = () => {
             <CardTitle className="text-lg">Canais de Alerta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-2 border-b">
-              <div className="flex items-center gap-3">
-                <Smartphone className="text-indigo-600" size={20} />
-                <Label>Avisos no Celular</Label>
-              </div>
-              <Switch checked={settings.alerts.push} onCheckedChange={() => toggleAlert('push')} />
-            </div>
             <div className="flex items-center justify-between py-2 border-b">
               <div className="flex items-center gap-3">
                 <Volume2 className="text-indigo-600" size={20} />
