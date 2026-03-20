@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate, PlayCircle } from 'lucide-react';
+import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate, PlayCircle, Phone } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -22,6 +22,13 @@ const Settings = () => {
     showSuccess("Configuração atualizada!");
   };
 
+  const updateContact = (key: keyof typeof settings.contact, value: string) => {
+    updateSettings({
+      ...settings,
+      contact: { ...settings.contact, [key]: value }
+    });
+  };
+
   const updateInterval = (key: keyof typeof settings.intervals, value: string) => {
     const numValue = parseInt(value) || 0;
     updateSettings({
@@ -31,10 +38,8 @@ const Settings = () => {
   };
 
   const testAlert = () => {
-    // 1. Notificação Visual
     showError("TESTE: Alerta de vencimento disparado!");
 
-    // 2. Push
     if (settings.alerts.push && "Notification" in window) {
       if (Notification.permission === "granted") {
         new Notification("Teste de Alerta", {
@@ -50,13 +55,11 @@ const Settings = () => {
       }
     }
 
-    // 3. Som
     if (settings.alerts.sound) {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.play().catch(() => showError("Clique na tela antes de testar o som!"));
     }
 
-    // 4. Vibração
     if (settings.alerts.vibration && "vibrate" in navigator) {
       navigator.vibrate([200, 100, 200]);
     }
@@ -73,6 +76,39 @@ const Settings = () => {
           <PlayCircle size={24} />
           Testar Alerta Crítico Agora
         </Button>
+
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Dados de Contato</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone-input" className="flex items-center gap-2">
+                <Phone size={16} className="text-slate-500" /> WhatsApp / SMS
+              </Label>
+              <Input 
+                id="phone-input"
+                placeholder="(00) 00000-0000"
+                value={settings.contact.phoneNumber}
+                onChange={(e) => updateContact('phoneNumber', e.target.value)}
+                className="bg-slate-50 border-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-input" className="flex items-center gap-2">
+                <Mail size={16} className="text-slate-500" /> E-mail de Alerta
+              </Label>
+              <Input 
+                id="email-input"
+                type="email"
+                placeholder="seu@email.com"
+                value={settings.contact.email}
+                onChange={(e) => updateContact('email', e.target.value)}
+                className="bg-slate-50 border-none"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="pb-2">

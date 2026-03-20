@@ -17,6 +17,10 @@ const defaultSettings: AppSettings = {
     sound: true,
     push: true,
   },
+  contact: {
+    phoneNumber: '',
+    email: '',
+  },
   intervals: {
     first: 15,
     second: 7,
@@ -31,7 +35,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const saved = localStorage.getItem('alertaboleto_settings');
-    if (saved) setSettings(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Garantir que a estrutura nova exista mesmo em dados antigos
+      setSettings({
+        ...defaultSettings,
+        ...parsed,
+        contact: parsed.contact || defaultSettings.contact,
+        alerts: { ...defaultSettings.alerts, ...parsed.alerts }
+      });
+    }
   }, []);
 
   const updateSettings = (newSettings: AppSettings) => {

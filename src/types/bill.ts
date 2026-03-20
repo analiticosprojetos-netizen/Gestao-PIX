@@ -16,6 +16,10 @@ export interface AppSettings {
     sound: boolean;
     push: boolean;
   };
+  contact: {
+    phoneNumber: string;
+    email: string;
+  };
   intervals: {
     first: number;
     second: number;
