@@ -1,17 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Tenta pegar das variáveis de ambiente
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Chaves reais do seu projeto configuradas
+const supabaseUrl = 'https://nxpvkuschribtwwdyach.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54cHZrdXNjaHJpYnR3d2R5YWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMDc3NDcsImV4cCI6MjA4OTU4Mzc0N30.KjMve4BUNZNRX62NaPCu0jWqXRq14NDn69F8wZmpJD8';
 
-// Se não houver chaves, exportamos um cliente nulo ou avisamos
-// Isso evita o erro 'supabaseUrl is required' logo no carregamento
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("ERRO: Configuração do Supabase ausente! O app não conseguirá salvar ou carregar dados.");
-}
-
-// Inicializa apenas se tivermos os dados, senão o app vai travar nas funções que usarem o banco
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co', 
-  supabaseAnonKey || 'placeholder'
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
