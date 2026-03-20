@@ -42,8 +42,8 @@ const Index = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-lg font-bold flex items-center gap-2">
-            <Calendar className="text-indigo-600" size={20} />
+          <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
+            <Calendar className="text-indigo-600 dark:text-indigo-400" size={20} />
             Próximos Vencimentos
           </h3>
           
@@ -51,27 +51,27 @@ const Index = () => {
             {upcomingBills.length > 0 ? (
               upcomingBills.map((bill) => {
                 const daysLeft = differenceInDays(bill.dueDate, new Date());
-                let statusColor = "text-emerald-600 bg-emerald-50";
-                if (daysLeft <= 3) statusColor = "text-rose-600 bg-rose-50";
-                else if (daysLeft <= 7) statusColor = "text-amber-600 bg-amber-50";
+                let statusColor = "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400";
+                if (daysLeft <= 3) statusColor = "text-rose-600 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400";
+                else if (daysLeft <= 7) statusColor = "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400";
 
                 return (
-                  <Card key={bill.id} className="border-none shadow-sm overflow-hidden">
+                  <Card key={bill.id} className="border-none shadow-sm overflow-hidden dark:bg-slate-900">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className={cn("p-3 rounded-2xl", statusColor)}>
                           <AlertCircle size={24} />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800">{bill.title}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="font-bold text-slate-800 dark:text-slate-100">{bill.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             Vence em {format(bill.dueDate, "dd 'de' MMMM", { locale: ptBR })}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-indigo-600">R$ {bill.amount.toFixed(2)}</p>
-                        <Badge variant="outline" className={cn("text-[10px] py-0", statusColor)}>
+                        <p className="font-bold text-indigo-600 dark:text-indigo-400">R$ {bill.amount.toFixed(2)}</p>
+                        <Badge variant="outline" className={cn("text-[10px] py-0 border-none", statusColor)}>
                           {daysLeft < 0 ? 'Atrasado' : `Em ${daysLeft} dias`}
                         </Badge>
                       </div>
@@ -88,7 +88,7 @@ const Index = () => {
 
       <Button 
         onClick={() => setDialogOpen(true)}
-        className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700"
+        className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500"
       >
         <Plus size={28} />
       </Button>

@@ -29,27 +29,29 @@ const Bills = () => {
   };
 
   const BillItem = ({ bill }: { bill: Bill }) => (
-    <Card className="border-none shadow-sm mb-3 group">
+    <Card className="border-none shadow-sm mb-3 group dark:bg-slate-900">
       <CardContent className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => togglePaid(bill.id)}>
             {bill.paid ? 
               <CheckCircle2 className="text-emerald-500" size={24} /> : 
-              <Circle className="text-slate-300" size={24} />
+              <Circle className="text-slate-300 dark:text-slate-600" size={24} />
             }
           </button>
           <div>
-            <p className={cn("font-bold", bill.paid ? "text-slate-400 line-through" : "text-slate-800")}>
+            <p className={cn("font-bold", 
+              bill.paid ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"
+            )}>
               {bill.title}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Vencimento: {format(bill.dueDate, "dd/MM/yyyy", { locale: ptBR })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right mr-2">
-            <p className="font-bold text-slate-700 font-mono">R$ {bill.amount.toFixed(2)}</p>
+            <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {bill.amount.toFixed(2)}</p>
           </div>
           <div className="flex items-center gap-1">
             <button 
@@ -77,16 +79,16 @@ const Bills = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input 
             placeholder="Buscar boleto..." 
-            className="pl-10 bg-white border-none shadow-sm" 
+            className="pl-10 bg-white dark:bg-slate-900 border-none shadow-sm" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-200/50 p-1 rounded-xl">
-            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:bg-white">Pendentes</TabsTrigger>
-            <TabsTrigger value="paid" className="rounded-lg data-[state=active]:bg-white">Pagos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl">
+            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">Pendentes</TabsTrigger>
+            <TabsTrigger value="paid" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">Pagos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="pending" className="mt-4">
