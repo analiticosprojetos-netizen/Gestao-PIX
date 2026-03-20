@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BillDialog from '@/components/bills/BillDialog';
+import VoiceAssistant from '@/components/voice/VoiceAssistant';
 import { useBills } from '@/context/BillContext';
 import { useNotificationEngine } from '@/hooks/useNotificationEngine';
 import { format, differenceInDays } from 'date-fns';
@@ -86,9 +87,13 @@ const Index = () => {
         </section>
       </div>
 
+      {/* Assistente de Voz Inteligente */}
+      <VoiceAssistant />
+
+      {/* Botão Manual */}
       <Button 
         onClick={() => setDialogOpen(true)}
-        className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 z-50"
       >
         <Plus size={28} />
       </Button>
