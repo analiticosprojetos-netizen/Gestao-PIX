@@ -5,10 +5,11 @@ import AppShell from '@/components/layout/AppShell';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate } from 'lucide-react';
+import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate, PlayCircle } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
@@ -29,9 +30,50 @@ const Settings = () => {
     });
   };
 
+  const testAlert = () => {
+    // 1. Notificação Visual
+    showError("TESTE: Alerta de vencimento disparado!");
+
+    // 2. Push
+    if (settings.alerts.push && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        new Notification("Teste de Alerta", {
+          body: "Este é um teste do AlertaBoleto. Se você recebeu isso, o push está OK!",
+          icon: "/placeholder.svg"
+        });
+      } else {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification("Permissão Concedida!", { body: "Agora você receberá alertas." });
+          }
+        });
+      }
+    }
+
+    // 3. Som
+    if (settings.alerts.sound) {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(() => showError("Clique na tela antes de testar o som!"));
+    }
+
+    // 4. Vibração
+    if (settings.alerts.vibration && "vibrate" in navigator) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
+        <Button 
+          onClick={testAlert}
+          variant="outline" 
+          className="w-full h-14 border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center gap-2 font-bold rounded-2xl"
+        >
+          <PlayCircle size={24} />
+          Testar Alerta Crítico Agora
+        </Button>
+
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Canais de Notificação</CardTitle>
