@@ -4,10 +4,9 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Volume2, Vibrate, PlayCircle, Phone, ShieldCheck, BellRing } from 'lucide-react';
+import { Smartphone, Volume2, Vibrate, PlayCircle, ShieldCheck, BellRing } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showSuccess, showError } from '@/utils/toast';
 
@@ -17,7 +16,7 @@ const Settings = () => {
 
   const requestPermission = async () => {
     if (!("Notification" in window)) {
-      showError("Este navegador não suporta notificações.");
+      showError("Navegador sem suporte a notificações.");
       return;
     }
     
@@ -25,33 +24,44 @@ const Settings = () => {
     setPermissionStatus(permission);
     
     if (permission === "granted") {
-      showSuccess("Notificações ativadas! Agora você receberá os alertas.");
-      // Tenta registrar o som no primeiro toque
+      showSuccess("Notificações liberadas!");
+      // Tenta dar um 'toque' silencioso para destravar o áudio no Android
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => console.log("Som 'destravado' para o futuro."));
+      audio.volume = 0;
+      audio.play().catch(() => {});
     } else {
-      showError("Permissão negada. Vá nas configurações do celular para ativar.");
+      showError("Permissão negada no Android.");
     }
   };
 
-  const testAlert = () => {
-    if (permissionStatus === "granted") {
-      new Notification("Teste de Alerta", {
-        body: "As notificações do AlertaBoleto estão funcionando!",
-        icon: "/placeholder.svg"
-      });
-      showSuccess("Notificação enviada!");
-    } else {
-      showError("Ative as notificações no botão verde acima!");
-    }
-
+  const testAlert = async () => {
+    // 1. DISPARAR SOM IMEDIATAMENTE (Obrigatório no Android dentro do clique)
     if (settings.alerts.sound) {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => showError("Toque na tela para permitir o som!"));
+      audio.play().catch((err) => {
+        console.error("Erro ao tocar som:", err);
+        showError("Erro no som. Tente interagir mais com a tela.");
+      });
     }
 
+    // 2. VIBRAR IMEDIATAMENTE
     if (settings.alerts.vibration && "vibrate" in navigator) {
       navigator.vibrate([200, 100, 200]);
+    }
+
+    // 3. NOTIFICAÇÃO DE SISTEMA (Via Service Worker para aparecer na barra do Android)
+    if (permissionStatus === "granted" && 'serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      registration.showNotification("Teste de Alerta", {
+        body: "Se você viu isso, o AlertaBoleto está configurado!",
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        vibrate: [200, 100, 200],
+        tag: 'teste-alerta'
+      });
+      showSuccess("Comando enviado ao Android!");
+    } else if (permissionStatus !== "granted") {
+      showError("Ative as notificações primeiro!");
     }
   };
 
@@ -90,33 +100,33 @@ const Settings = () => {
             className="h-14 border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center gap-2 font-bold rounded-2xl"
           >
             <PlayCircle size={20} />
-            Testar Alerta Sonoro
+            Testar Alerta Completo
           </Button>
         </div>
 
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Canais de Alerta</CardTitle>
+            <CardTitle className="text-lg font-bold">Canais de Alerta</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between py-2 border-b">
               <div className="flex items-center gap-3">
                 <Smartphone className="text-indigo-600" size={20} />
-                <Label>Avisos no Celular</Label>
+                <Label className="font-medium text-slate-700">Avisos na Barra do Celular</Label>
               </div>
               <Switch checked={settings.alerts.push} onCheckedChange={() => toggleAlert('push')} />
             </div>
             <div className="flex items-center justify-between py-2 border-b">
               <div className="flex items-center gap-3">
                 <Volume2 className="text-indigo-600" size={20} />
-                <Label>Som do Alerta</Label>
+                <Label className="font-medium text-slate-700">Tocar Som</Label>
               </div>
               <Switch checked={settings.alerts.sound} onCheckedChange={() => toggleAlert('sound')} />
             </div>
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
                 <Vibrate className="text-indigo-600" size={20} />
-                <Label>Vibrar Aparelho</Label>
+                <Label className="font-medium text-slate-700">Vibrar Aparelho</Label>
               </div>
               <Switch checked={settings.alerts.vibration} onCheckedChange={() => toggleAlert('vibration')} />
             </div>
