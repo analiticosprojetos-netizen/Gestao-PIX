@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, AlertCircle } from 'lucide-react';
 import AddBillDialog from '@/components/bills/AddBillDialog';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const [bills, setBills] = useState([

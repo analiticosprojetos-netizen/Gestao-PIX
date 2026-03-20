@@ -8,6 +8,7 @@ import { CheckCircle2, Circle, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from "@/lib/utils";
 
 const Bills = () => {
   const [bills, setBills] = useState([
