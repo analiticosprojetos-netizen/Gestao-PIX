@@ -3,87 +3,83 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useBills } from '@/context/BillContext';
 import { useSettings } from '@/context/SettingsContext';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, startOfDay } from 'date-fns';
 import { showError } from '@/utils/toast';
-import { supabase } from '@/lib/supabase';
 
 export const useNotificationEngine = () => {
   const { bills } = useBills();
   const { settings } = useSettings();
-  const notifiedRef = useRef<Set<string>>(new Set());
+  const hasInteracted = useRef(false);
+  const pendingAlerts = useRef<string[]>([]);
 
-  const triggerSystemNotification = useCallback((title: string, body: string, billId: string) => {
-    // 1. Alerta visual (Sonner) - Sempre funciona ao abrir o link
-    showError(`${title}: ${body}`);
+  const playAlertEffects = useCallback(() => {
+    if (!settings.alerts.sound && !settings.alerts.vibration) return;
 
-    // 2. Notificação do Sistema (se permitido)
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(title, {
-        body,
-        icon: '/placeholder.svg',
-        tag: billId // Evita repetir a mesma notificação
-      });
-    }
-
-    // 3. Som (Pode ser bloqueado se não houver interação prévia)
+    // Tenta tocar o som (precisa de interação prévia)
     if (settings.alerts.sound) {
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(() => {
-        console.log("Áudio aguardando interação do usuário para tocar");
-      });
+      audio.volume = 1.0;
+      audio.play().catch(() => console.log("Aguardando toque para som..."));
     }
 
-    // 4. Vibração
+    // Vibração (precisa de interação prévia)
     if (settings.alerts.vibration && "vibrate" in navigator) {
-      navigator.vibrate([200, 100, 200]);
+      navigator.vibrate([500, 200, 500, 200, 500]);
     }
   }, [settings]);
 
-  useEffect(() => {
-    const checkBills = () => {
-      const today = new Date();
-      bills.forEach(bill => {
-        if (bill.paid) return;
-        
-        // Evita disparar 50 vezes pro mesmo boleto na mesma sessão
-        if (notifiedRef.current.has(bill.id)) return;
+  const checkAndNotify = useCallback(() => {
+    const today = startOfDay(new Date());
+    
+    bills.forEach(bill => {
+      if (bill.paid) return;
 
-        const daysLeft = differenceInDays(new Date(bill.dueDate), today);
+      const dueDate = startOfDay(new Date(bill.dueDate));
+      const daysLeft = differenceInDays(dueDate, today);
+
+      // Se vence hoje ou está atrasado
+      if (daysLeft <= 0) {
+        const msg = `${bill.title} - VENCE ${daysLeft === 0 ? 'HOJE' : 'ATRASADO'}!`;
         
-        if (daysLeft <= 1) {
-          triggerSystemNotification(
-            "⚠️ BOLETO VENCENDO", 
-            `${bill.title} (${daysLeft === 0 ? 'HOJE' : 'AMANHÃ'})`,
-            bill.id
-          );
-          notifiedRef.current.add(bill.id);
+        // Alerta visual imediato (sempre funciona)
+        showError(msg);
+
+        // Se o usuário já tocou na tela, toca som agora. 
+        // Se não, guarda para tocar no primeiro toque.
+        if (hasInteracted.current) {
+          playAlertEffects();
+        } else {
+          pendingAlerts.current.push(msg);
         }
-      });
+      }
+    });
+  }, [bills, playAlertEffects]);
+
+  useEffect(() => {
+    // Monitora o primeiro clique/toque na tela para "destravar" o áudio
+    const handleFirstInteraction = () => {
+      if (hasInteracted.current) return;
+      hasInteracted.current = true;
+      
+      if (pendingAlerts.current.length > 0) {
+        playAlertEffects();
+        pendingAlerts.current = []; // Limpa fila
+      }
+      
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
     };
 
-    // Tenta rodar assim que os boletos carregarem
+    window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('touchstart', handleFirstInteraction);
+
     if (bills.length > 0) {
-      checkBills();
+      checkAndNotify();
     }
 
-    const interval = setInterval(checkBills, 1000 * 60 * 5); // Checa a cada 5 min
-    return () => clearInterval(interval);
-  }, [bills, triggerSystemNotification]);
-
-  // Tenta registrar o Push em segundo plano se tiver permissão
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      const registerPush = async () => {
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        if (sub) {
-          await supabase.from('push_subscriptions').upsert({ 
-            subscription: sub.toJSON(),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'subscription' });
-        }
-      };
-      registerPush();
-    }
-  }, []);
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+  }, [bills, checkAndNotify, playAlertEffects]);
 };
