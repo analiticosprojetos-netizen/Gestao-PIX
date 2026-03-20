@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibration } from 'lucide-react';
+import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate } from 'lucide-react';
 
 const Settings = () => {
   const [alerts, setAlerts] = useState({
@@ -84,7 +84,7 @@ const Settings = () => {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Vibration size={20} />
+                <Vibrate size={20} />
                 <Label htmlFor="vibration">Vibrar</Label>
               </div>
               <Switch id="vibration" checked={alerts.vibration} onCheckedChange={() => toggleAlert('vibration')} />
