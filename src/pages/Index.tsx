@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,26 +23,59 @@ const Index = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [capturedTranscript, setCapturedTranscript] = useState("");
   
+  const recognitionRef = useRef<any>(null);
+
   // Ativa o sistema de notificações intensivas
   useNotificationEngine();
 
-  const startVoiceRecognition = () => {
+  const startVoiceRecognition = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
     
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => {
+      setIsListening(true);
+      setCapturedTranscript("");
+    };
+
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      processCommand(transcript);
+      setCapturedTranscript(transcript);
+      setIsListening(false);
+
+      // Se o usuário disser "OK" diretamente, confirma
+      if (transcript.toLowerCase() === "ok") {
+        handleConfirm();
+      }
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      // Não limpa o transcript aqui para permitir revisão
+    };
     
     recognition.start();
+  }, []);
+
+  const handleConfirm = () => {
+    if (capturedTranscript) {
+      processCommand(capturedTranscript);
+      setCapturedTranscript("");
+    }
+  };
+
+  const handleRetry = () => {
+    setCapturedTranscript("");
+    startVoiceRecognition();
   };
 
   const upcomingBills = bills
@@ -111,10 +144,18 @@ const Index = () => {
         </section>
       </div>
 
-      {/* Interface de Voz (Overlay de gravação) */}
-      <VoiceAssistant isListening={isListening} />
+      {/* Interface de Voz com Revisão */}
+      <VoiceAssistant 
+        isListening={isListening} 
+        transcript={capturedTranscript}
+        onConfirm={handleConfirm}
+        onRetry={handleRetry}
+        onClose={() => {
+          setIsListening(false);
+          setCapturedTranscript("");
+        }}
+      />
 
-      {/* Menu de Ação Unificado */}
       <AddActionMenu 
         open={menuOpen} 
         onOpenChange={setMenuOpen}
@@ -122,7 +163,6 @@ const Index = () => {
         onManualAction={() => setDialogOpen(true)}
       />
 
-      {/* Botão Único flutuante */}
       <Button 
         onClick={() => setMenuOpen(true)}
         className="fixed bottom-20 right-6 h-16 w-16 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 z-50 transition-transform active:scale-90"
