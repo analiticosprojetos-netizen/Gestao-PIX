@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Bill } from '@/types/bill';
 import { supabase } from '@/lib/supabase';
 import { showSuccess, showError } from '@/utils/toast';
-import { addMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BillContextType {
   bills: Bill[];
@@ -111,7 +112,6 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
     if (newPaidStatus && bill.recurring) {
       const nextMonthDate = addMonths(bill.dueDate, 1);
       
-      // Verifica se já não existe um boleto com o mesmo título no mês seguinte para evitar duplicatas
       const alreadyExists = bills.find(b => 
         b.title === bill.title && 
         b.dueDate.getMonth() === nextMonthDate.getMonth() &&
@@ -126,7 +126,9 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
           category: bill.category,
           recurring: true
         });
-        showSuccess(`Boleto de ${format(nextMonthDate, 'MMMM', { locale: (await import('date-fns/locale')).ptBR })} gerado!`);
+        
+        const mesNome = format(nextMonthDate, 'MMMM', { locale: ptBR });
+        showSuccess(`Boleto de ${mesNome} gerado!`);
       }
     }
   };
