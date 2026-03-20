@@ -8,18 +8,42 @@ import { Calendar, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BillDialog from '@/components/bills/BillDialog';
 import VoiceAssistant from '@/components/voice/VoiceAssistant';
+import AddActionMenu from '@/components/bills/AddActionMenu';
 import { useBills } from '@/context/BillContext';
 import { useNotificationEngine } from '@/hooks/useNotificationEngine';
+import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { bills, addBill } = useBills();
+  const { processCommand } = useVoiceCommand();
+  
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   
   // Ativa o sistema de notificações intensivas
   useNotificationEngine();
+
+  const startVoiceRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      processCommand(transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.start();
+  };
 
   const upcomingBills = bills
     .filter(b => !b.paid)
@@ -87,15 +111,23 @@ const Index = () => {
         </section>
       </div>
 
-      {/* Assistente de Voz Inteligente */}
-      <VoiceAssistant />
+      {/* Interface de Voz (Overlay de gravação) */}
+      <VoiceAssistant isListening={isListening} />
 
-      {/* Botão Manual */}
+      {/* Menu de Ação Unificado */}
+      <AddActionMenu 
+        open={menuOpen} 
+        onOpenChange={setMenuOpen}
+        onVoiceAction={startVoiceRecognition}
+        onManualAction={() => setDialogOpen(true)}
+      />
+
+      {/* Botão Único flutuante */}
       <Button 
-        onClick={() => setDialogOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 z-50"
+        onClick={() => setMenuOpen(true)}
+        className="fixed bottom-20 right-6 h-16 w-16 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 z-50 transition-transform active:scale-90"
       >
-        <Plus size={28} />
+        <Plus size={32} />
       </Button>
 
       <BillDialog 
