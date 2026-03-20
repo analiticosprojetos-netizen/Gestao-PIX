@@ -1,40 +1,48 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Mail, BellRing, Smartphone, Volume2, Vibrate, PlayCircle, Phone, ShieldCheck } from 'lucide-react';
+import { Smartphone, Volume2, Vibrate, PlayCircle, Phone, ShieldCheck, BellRing } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Settings = () => {
   const { settings, updateSettings } = useSettings();
+  const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
 
   const requestPermission = async () => {
     if (!("Notification" in window)) {
       showError("Este navegador não suporta notificações.");
       return;
     }
+    
     const permission = await Notification.requestPermission();
+    setPermissionStatus(permission);
+    
     if (permission === "granted") {
-      showSuccess("Notificações ativadas com sucesso!");
+      showSuccess("Notificações ativadas! Agora você receberá os alertas.");
+      // Tenta registrar o som no primeiro toque
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(() => console.log("Som 'destravado' para o futuro."));
     } else {
-      showError("Permissão de notificação negada.");
+      showError("Permissão negada. Vá nas configurações do celular para ativar.");
     }
   };
 
   const testAlert = () => {
-    if (settings.alerts.push && Notification.permission === "granted") {
+    if (permissionStatus === "granted") {
       new Notification("Teste de Alerta", {
-        body: "Se você recebeu isso, as notificações estão configuradas!",
+        body: "As notificações do AlertaBoleto estão funcionando!",
         icon: "/placeholder.svg"
       });
-    } else if (Notification.permission !== "granted") {
-      showError("Ative as notificações no botão acima primeiro!");
+      showSuccess("Notificação enviada!");
+    } else {
+      showError("Ative as notificações no botão verde acima!");
     }
 
     if (settings.alerts.sound) {
@@ -45,8 +53,6 @@ const Settings = () => {
     if (settings.alerts.vibration && "vibrate" in navigator) {
       navigator.vibrate([200, 100, 200]);
     }
-    
-    showSuccess("Teste disparado!");
   };
 
   const toggleAlert = (key: keyof typeof settings.alerts) => {
@@ -56,52 +62,37 @@ const Settings = () => {
     });
   };
 
-  const updateContact = (key: keyof typeof settings.contact, value: string) => {
-    updateSettings({ ...settings, contact: { ...settings.contact, [key]: value } });
-  };
-
-  const updateInterval = (key: keyof typeof settings.intervals, value: string) => {
-    const numValue = parseInt(value) || 0;
-    updateSettings({ ...settings, intervals: { ...settings.intervals, [key]: numValue } });
-  };
-
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            onClick={requestPermission}
-            className="h-14 bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-2 font-bold rounded-2xl"
-          >
-            <ShieldCheck size={20} />
-            Ativar Permissões
-          </Button>
+        <div className="grid grid-cols-1 gap-3">
+          {permissionStatus !== "granted" ? (
+            <Button 
+              onClick={requestPermission}
+              className="h-16 bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-3 font-bold rounded-2xl animate-pulse"
+            >
+              <BellRing size={24} />
+              ATIVAR NOTIFICAÇÕES AGORA
+            </Button>
+          ) : (
+            <Button 
+              disabled
+              className="h-16 bg-slate-100 text-emerald-600 border border-emerald-200 flex items-center justify-center gap-3 font-bold rounded-2xl"
+            >
+              <ShieldCheck size={24} />
+              NOTIFICAÇÕES ATIVADAS
+            </Button>
+          )}
+          
           <Button 
             onClick={testAlert}
             variant="outline" 
             className="h-14 border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center gap-2 font-bold rounded-2xl"
           >
             <PlayCircle size={20} />
-            Testar Agora
+            Testar Alerta Sonoro
           </Button>
         </div>
-
-        <Card className="border-none shadow-sm overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Dados de Contato</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><Phone size={16} /> WhatsApp / Celular</Label>
-              <Input 
-                placeholder="(00) 00000-0000"
-                value={settings.contact.phoneNumber}
-                onChange={(e) => updateContact('phoneNumber', e.target.value)}
-                className="bg-slate-50 border-none"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="pb-2">
@@ -111,20 +102,20 @@ const Settings = () => {
             <div className="flex items-center justify-between py-2 border-b">
               <div className="flex items-center gap-3">
                 <Smartphone className="text-indigo-600" size={20} />
-                <Label>Notificação Push (No Celular)</Label>
+                <Label>Avisos no Celular</Label>
               </div>
               <Switch checked={settings.alerts.push} onCheckedChange={() => toggleAlert('push')} />
             </div>
-            <div className="flex items-center justify-between py-2">
+            <div className="flex items-center justify-between py-2 border-b">
               <div className="flex items-center gap-3">
-                <Volume2 className="text-slate-500" size={20} />
+                <Volume2 className="text-indigo-600" size={20} />
                 <Label>Som do Alerta</Label>
               </div>
               <Switch checked={settings.alerts.sound} onCheckedChange={() => toggleAlert('sound')} />
             </div>
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
-                <Vibrate className="text-slate-500" size={20} />
+                <Vibrate className="text-indigo-600" size={20} />
                 <Label>Vibrar Aparelho</Label>
               </div>
               <Switch checked={settings.alerts.vibration} onCheckedChange={() => toggleAlert('vibration')} />

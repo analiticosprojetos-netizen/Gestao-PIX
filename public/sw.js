@@ -1,4 +1,4 @@
-// Este arquivo roda em segundo plano, mesmo com o app fechado
+// Este arquivo roda em segundo plano
 self.addEventListener('push', function(event) {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Alerta de Boleto';
@@ -6,9 +6,10 @@ self.addEventListener('push', function(event) {
     body: data.body || 'Você tem um boleto vencendo hoje!',
     icon: '/placeholder.svg',
     badge: '/placeholder.svg',
-    vibrate: [200, 100, 200], // Faz o celular vibrar
-    tag: 'boleto-alerta', // Evita notificações duplicadas
-    renotify: true
+    vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40],
+    tag: 'boleto-alerta',
+    renotify: true,
+    requireInteraction: true // A notificação fica na tela até você clicar
   };
 
   event.waitUntil(
@@ -16,10 +17,13 @@ self.addEventListener('push', function(event) {
   );
 });
 
-// Quando o usuário clica na notificação
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   event.waitUntil(
     clients.openWindow('/')
   );
 });
+
+// Forçar ativação imediata
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', () => self.clients.claim());
