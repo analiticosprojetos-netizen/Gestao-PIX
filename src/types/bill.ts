@@ -5,6 +5,7 @@ export interface Bill {
   dueDate: Date;
   paid: boolean;
   category: string;
+  recurring: boolean; // Novo campo para boletos mensais
 }
 
 export interface AppSettings {

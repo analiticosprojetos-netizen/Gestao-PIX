@@ -5,9 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { showSuccess } from "@/utils/toast";
 import { Bill } from '@/types/bill';
 import { format } from 'date-fns';
+import { Repeat } from 'lucide-react';
 
 interface BillDialogProps {
   open: boolean;
@@ -17,17 +19,28 @@ interface BillDialogProps {
 }
 
 const BillDialog = ({ open, onOpenChange, onSubmit, bill }: BillDialogProps) => {
-  const [formData, setFormData] = useState({ title: '', amount: '', dueDate: '' });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    amount: '', 
+    dueDate: '',
+    recurring: false 
+  });
 
   useEffect(() => {
     if (bill) {
       setFormData({
         title: bill.title,
         amount: bill.amount.toString(),
-        dueDate: format(bill.dueDate, 'yyyy-MM-dd')
+        dueDate: format(bill.dueDate, 'yyyy-MM-dd'),
+        recurring: bill.recurring || false
       });
     } else {
-      setFormData({ title: '', amount: '', dueDate: '' });
+      setFormData({ 
+        title: '', 
+        amount: '', 
+        dueDate: '',
+        recurring: false 
+      });
     }
   }, [bill, open]);
 
@@ -38,7 +51,8 @@ const BillDialog = ({ open, onOpenChange, onSubmit, bill }: BillDialogProps) => 
     onSubmit({
       title: formData.title,
       amount: parseFloat(formData.amount),
-      dueDate: new Date(formData.dueDate + 'T12:00:00') // Evitar problemas de timezone
+      dueDate: new Date(formData.dueDate + 'T12:00:00'),
+      recurring: formData.recurring
     });
     
     onOpenChange(false);
@@ -81,7 +95,23 @@ const BillDialog = ({ open, onOpenChange, onSubmit, bill }: BillDialogProps) => 
               onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
             />
           </div>
-          <Button type="submit" className="w-full bg-indigo-600">
+          
+          <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
+            <div className="flex items-center gap-3">
+              <Repeat className="text-indigo-600" size={20} />
+              <div>
+                <Label htmlFor="recurring" className="font-bold text-indigo-900">Boleto Mensal</Label>
+                <p className="text-[10px] text-indigo-600">Repetir automaticamente todo mês</p>
+              </div>
+            </div>
+            <Switch 
+              id="recurring" 
+              checked={formData.recurring}
+              onCheckedChange={(checked) => setFormData({...formData, recurring: checked})}
+            />
+          </div>
+
+          <Button type="submit" className="w-full bg-indigo-600 h-12 text-lg rounded-2xl">
             {bill ? 'Salvar Alterações' : 'Salvar Boleto'}
           </Button>
         </form>

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Bill } from '@/types/bill';
 import { supabase } from '@/lib/supabase';
 import { showSuccess, showError } from '@/utils/toast';
+import { addMonths } from 'date-fns';
 
 interface BillContextType {
   bills: Bill[];
@@ -20,7 +21,6 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Carregar boletos do Supabase
   const fetchBills = async () => {
     try {
       const { data, error } = await supabase
@@ -29,11 +29,11 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-
       if (data) {
         setBills(data.map(b => ({
           ...b,
-          dueDate: new Date(b.due_date)
+          dueDate: new Date(b.due_date),
+          recurring: b.recurring || false
         })));
       }
     } catch (err) {
@@ -55,15 +55,16 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
           title: newBill.title,
           amount: newBill.amount,
           due_date: newBill.dueDate.toISOString(),
-          category: newBill.category,
-          paid: false
+          category: newBill.category || 'Geral',
+          paid: false,
+          recurring: newBill.recurring || false
         }])
         .select();
 
       if (error) throw error;
       if (data) {
-        setBills(prev => [...data.map(b => ({ ...b, dueDate: new Date(b.due_date) })), ...prev]);
-        showSuccess("Boleto salvo no banco de dados!");
+        const mapped = data.map(b => ({ ...b, dueDate: new Date(b.due_date) }));
+        setBills(prev => [...mapped, ...prev]);
       }
     } catch (err) {
       showError("Erro ao salvar boleto");
@@ -90,11 +91,7 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteBill = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('bills')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('bills').delete().eq('id', id);
       if (error) throw error;
       setBills(prev => prev.filter(b => b.id !== id));
       showSuccess("Boleto removido");
@@ -106,7 +103,32 @@ export const BillProvider = ({ children }: { children: React.ReactNode }) => {
   const togglePaid = async (id: string) => {
     const bill = bills.find(b => b.id === id);
     if (!bill) return;
-    await updateBill(id, { paid: !bill.paid });
+
+    const newPaidStatus = !bill.paid;
+    await updateBill(id, { paid: newPaidStatus });
+
+    // Lógica Mensal: Se marcou como pago e é recorrente, cria o do mês seguinte
+    if (newPaidStatus && bill.recurring) {
+      const nextMonthDate = addMonths(bill.dueDate, 1);
+      
+      // Verifica se já não existe um boleto com o mesmo título no mês seguinte para evitar duplicatas
+      const alreadyExists = bills.find(b => 
+        b.title === bill.title && 
+        b.dueDate.getMonth() === nextMonthDate.getMonth() &&
+        b.dueDate.getFullYear() === nextMonthDate.getFullYear()
+      );
+
+      if (!alreadyExists) {
+        await addBill({
+          title: bill.title,
+          amount: bill.amount,
+          dueDate: nextMonthDate,
+          category: bill.category,
+          recurring: true
+        });
+        showSuccess(`Boleto de ${format(nextMonthDate, 'MMMM', { locale: (await import('date-fns/locale')).ptBR })} gerado!`);
+      }
+    }
   };
 
   return (
