@@ -2,65 +2,84 @@
 
 import { useBills } from '@/context/BillContext';
 import { showSuccess, showError } from '@/utils/toast';
-import { addDays } from 'date-fns';
+import { setDate, isBefore, addMonths, startOfDay } from 'date-fns';
 
 export const useVoiceCommand = () => {
   const { bills, togglePaid, deleteBill, addBill } = useBills();
 
   const processCommand = (transcript: string) => {
     const text = transcript.toLowerCase();
-    console.log("Comando recebido:", text);
+    console.log("Processando comando:", text);
 
-    // 1. Comando: PAGAR
+    // --- LÓGICA DE PAGAR ---
     if (text.includes("pagar") || text.includes("pago") || text.includes("quitei")) {
-      const target = bills.find(b => text.includes(b.title.toLowerCase()));
+      const target = bills.find(b => text.includes(b.title.toLowerCase()) && !b.paid);
       if (target) {
         togglePaid(target.id);
-        showSuccess(`Entendido! Marquei "${target.title}" como pago.`);
+        showSuccess(`Pronto! Marquei "${target.title}" como pago.`);
         return true;
+      } else {
+        showError("Não encontrei esse boleto pendente para pagar.");
+        return false;
       }
     }
 
-    // 2. Comando: EXCLUIR / REMOVER
+    // --- LÓGICA DE EXCLUIR ---
     if (text.includes("excluir") || text.includes("remover") || text.includes("deletar")) {
       const target = bills.find(b => text.includes(b.title.toLowerCase()));
       if (target) {
         deleteBill(target.id);
-        showSuccess(`Ok! Excluí o boleto "${target.title}".`);
+        showSuccess(`Boleto "${target.title}" removido com sucesso.`);
         return true;
       }
     }
 
-    // 3. Comando: NOVO BOLETO
-    if (text.includes("novo") || text.includes("cadastrar") || text.includes("conta")) {
-      // Tenta extrair valor (ex: "valor cem", "valor 100", "50 reais")
-      const amountMatch = text.match(/(\d+)/);
-      const amount = amountMatch ? parseFloat(amountMatch[0]) : 0;
-      
-      // Tenta extrair o nome (ignora palavras de comando)
+    // --- LÓGICA DE CRIAR (Mais robusta) ---
+    if (text.includes("criar") || text.includes("novo") || text.includes("adicionar") || text.includes("cadastrar")) {
+      // 1. Extrair Valor (Procura por números seguidos ou precedidos por 'reais', 'valor' ou apenas o número)
+      const amountMatch = text.match(/(\d+[,.]?\d*)/g);
+      let amount = 0;
+      if (amountMatch) {
+        // Pega o primeiro número que pareça um valor (geralmente o maior ou o primeiro falado)
+        amount = parseFloat(amountMatch[0].replace(',', '.'));
+      }
+
+      // 2. Extrair Dia (Procura por "dia X" ou "vencimento X")
+      const dayMatch = text.match(/dia\s*(\d+)/) || text.match(/vencimento\s*(\d+)/);
+      let dueDate = new Date();
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1]);
+        if (day >= 1 && day <= 31) {
+          dueDate = setDate(startOfDay(new Date()), day);
+          // Se o dia já passou no mês atual, assume que é para o mês que vem
+          if (isBefore(dueDate, startOfDay(new Date()))) {
+            dueDate = addMonths(dueDate, 1);
+          }
+        }
+      }
+
+      // 3. Extrair Título (Remove as palavras de comando, valores e dias)
       let title = text
-        .replace("novo", "")
-        .replace("cadastrar", "")
-        .replace("conta", "")
-        .replace("valor", "")
-        .replace("reais", "")
-        .replace(/\d+/g, "")
+        .replace(/(criar|novo|adicionar|cadastrar|boleto|conta)/g, "")
+        .replace(/valor|reais|vencimento|dia/g, "")
+        .replace(/\d+[,.]?\d*/g, "") // remove números
+        .replace(/\s+/g, " ") // limpa espaços extras
         .trim();
 
-      if (title) {
+      if (title.length > 2) {
         addBill({
           title: title.charAt(0).toUpperCase() + title.slice(1),
-          amount: amount || 0,
-          dueDate: addDays(new Date(), 7), // Vencimento padrão em 7 dias
+          amount: amount,
+          dueDate: dueDate,
           category: 'Geral',
           recurring: false
         });
-        showSuccess(`Adicionei "${title}" no valor de R$ ${amount}.`);
+        showSuccess(`Boleto "${title}" de R$ ${amount} criado para dia ${dueDate.getDate()}!`);
         return true;
       }
     }
 
-    showError("Não entendi o comando. Tente: 'Pagar conta de luz' ou 'Novo boleto internet valor 100'");
+    showError("Comando não reconhecido. Tente: 'Criar luz valor 150 dia 10'");
     return false;
   };
 
