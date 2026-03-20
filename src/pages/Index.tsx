@@ -8,6 +8,7 @@ import { Calendar, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BillDialog from '@/components/bills/BillDialog';
 import { useBills } from '@/context/BillContext';
+import { useNotificationEngine } from '@/hooks/useNotificationEngine';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
@@ -15,6 +16,9 @@ import { cn } from "@/lib/utils";
 const Index = () => {
   const { bills, addBill } = useBills();
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Ativa o sistema de notificações intensivas
+  useNotificationEngine();
 
   const upcomingBills = bills
     .filter(b => !b.paid)
