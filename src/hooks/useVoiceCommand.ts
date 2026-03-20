@@ -34,52 +34,53 @@ export const useVoiceCommand = () => {
       }
     }
 
-    // --- LÓGICA DE CRIAR (Mais robusta) ---
-    if (text.includes("criar") || text.includes("novo") || text.includes("adicionar") || text.includes("cadastrar")) {
-      // 1. Extrair Valor (Procura por números seguidos ou precedidos por 'reais', 'valor' ou apenas o número)
+    // --- LÓGICA DE CRIAR (Limpeza agressiva) ---
+    if (text.includes("criar") || text.includes("novo") || text.includes("adicionar") || text.includes("cadastrar") || text.includes("boleto")) {
+      // 1. Extrair Valor
       const amountMatch = text.match(/(\d+[,.]?\d*)/g);
       let amount = 0;
       if (amountMatch) {
-        // Pega o primeiro número que pareça um valor (geralmente o maior ou o primeiro falado)
         amount = parseFloat(amountMatch[0].replace(',', '.'));
       }
 
-      // 2. Extrair Dia (Procura por "dia X" ou "vencimento X")
+      // 2. Extrair Dia
       const dayMatch = text.match(/dia\s*(\d+)/) || text.match(/vencimento\s*(\d+)/);
       let dueDate = new Date();
       if (dayMatch) {
         const day = parseInt(dayMatch[1]);
         if (day >= 1 && day <= 31) {
           dueDate = setDate(startOfDay(new Date()), day);
-          // Se o dia já passou no mês atual, assume que é para o mês que vem
           if (isBefore(dueDate, startOfDay(new Date()))) {
             dueDate = addMonths(dueDate, 1);
           }
         }
       }
 
-      // 3. Extrair Título (Remove as palavras de comando, valores e dias)
+      // 3. Extrair Título Limpo (Removendo "de", "da", "do", "r$", "boleto", etc.)
       let title = text
-        .replace(/(criar|novo|adicionar|cadastrar|boleto|conta)/g, "")
-        .replace(/valor|reais|vencimento|dia/g, "")
-        .replace(/\d+[,.]?\d*/g, "") // remove números
+        .replace(/(criar|novo|adicionar|cadastrar|boleto|conta|fatura|recibo)/g, "")
+        .replace(/(valor|reais|vencimento|dia|de|da|do|r\$|r \$)/g, "") // Limpa conectores e símbolos
+        .replace(/\d+[,.]?\d*/g, "") // remove todos os números
         .replace(/\s+/g, " ") // limpa espaços extras
         .trim();
 
       if (title.length > 2) {
+        // Capitaliza a primeira letra (ex: água -> Água)
+        const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+        
         addBill({
-          title: title.charAt(0).toUpperCase() + title.slice(1),
+          title: capitalizedTitle,
           amount: amount,
           dueDate: dueDate,
           category: 'Geral',
           recurring: false
         });
-        showSuccess(`Boleto "${title}" de R$ ${amount} criado para dia ${dueDate.getDate()}!`);
+        showSuccess(`Boleto "${capitalizedTitle}" criado com sucesso!`);
         return true;
       }
     }
 
-    showError("Comando não reconhecido. Tente: 'Criar luz valor 150 dia 10'");
+    showError("Não entendi o comando. Tente: 'Criar boleto de água 120 reais dia 30'");
     return false;
   };
 
