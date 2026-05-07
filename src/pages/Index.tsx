@@ -12,6 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
+import { isWithinInterval, startOfMonth, endOfMonth, addMonths, subMonths, setDate } from 'date-fns';
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
@@ -25,19 +26,35 @@ const Index = () => {
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
 
-  // 2. Cálculos Cartão (Fatura Atual - Pendente)
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  // 2. Cálculo da Fatura Atual (Baseado no dia de fechamento)
+  const today = new Date();
+  const closingDay = settings.cardClosingDay;
   
-  const currentInvoiceTotal = installments.filter(i => {
-    const date = new Date(i.due_date);
-    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-  }).reduce((acc, i) => acc + i.amount, 0);
+  // Define o início e fim do ciclo da fatura atual
+  let cycleStart, cycleEnd;
+  if (today.getDate() > closingDay) {
+    cycleStart = setDate(today, closingDay + 1);
+    cycleEnd = setDate(addMonths(today, 1), closingDay);
+  } else {
+    cycleStart = setDate(subMonths(today, 1), closingDay + 1);
+    cycleEnd = setDate(today, closingDay);
+  }
 
-  const currentInvoicePending = installments.filter(i => {
-    const date = new Date(i.due_date);
-    return date.getMonth() === currentMonth && date.getFullYear() === currentYear && i.status === 'pending';
-  }).reduce((acc, i) => acc + i.amount, 0);
+  // Filtra parcelas que vencem no mês atual (ou próximo, dependendo do fechamento)
+  // Para simplificar e garantir que apareça, vamos pegar tudo que vence no mês/ano atual
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const currentInvoiceInstallments = installments.filter(i => {
+    const dueDate = new Date(i.due_date);
+    // Se a data de vencimento for no mesmo mês e ano, ou se for o próximo mês mas a fatura já fechou
+    return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+  });
+
+  const currentInvoiceTotal = currentInvoiceInstallments.reduce((acc, i) => acc + i.amount, 0);
+  const currentInvoicePending = currentInvoiceInstallments
+    .filter(i => i.status === 'pending')
+    .reduce((acc, i) => acc + i.amount, 0);
 
   // 3. Saldo Líquido (PIX - Fatura Pendente)
   const netBalance = pixBalance - currentInvoicePending;
@@ -53,7 +70,7 @@ const Index = () => {
   installments.forEach(inst => {
     const tx = transactions.find(t => t.id === inst.transaction_id);
     if (tx && tx.recipient_name) {
-      // Se a parcela está paga, ela abate da dívida (diminui o que você deve ou aumenta o que te devem)
+      // Se a parcela está paga, ela abate da dívida (diminui o que você deve)
       if (inst.status === 'paid') {
         balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
       }
@@ -71,7 +88,7 @@ const Index = () => {
     });
   };
 
-  const dueDate = settings.cardClosingDay + 7;
+  const dueDateDisplay = settings.cardClosingDay + 7;
 
   return (
     <AppShell>
@@ -129,7 +146,7 @@ const Index = () => {
               <CreditCard className="text-indigo-600" size={20} />
               <h3 className="font-bold dark:text-white">Fatura Atual</h3>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDate > 31 ? dueDate - 31 : dueDate}</Badge>
+            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDateDisplay > 31 ? dueDateDisplay - 31 : dueDateDisplay}</Badge>
           </div>
           <div className="flex justify-between items-end">
             <div>
