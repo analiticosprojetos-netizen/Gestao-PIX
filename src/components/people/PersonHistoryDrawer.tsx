@@ -17,11 +17,11 @@ interface PersonHistoryDrawerProps {
 
 const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDrawerProps) => {
   const { transfers } = useTransfers();
-  const { transactions } = useCards();
+  const { transactions, installments } = useCards();
 
   if (!personName) return null;
 
-  // Filtrar e unificar histórico
+  // 1. Histórico de PIX
   const personTransfers = transfers
     .filter(t => t.friend_name === personName)
     .map(t => ({
@@ -29,24 +29,31 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       date: t.date,
       description: t.description,
       amount: t.amount,
-      type: t.type === 'in' ? 'credit' : 'debit', // In = Eu devo (crédito dele), Out = Eu paguei (débito dele)
+      type: t.type === 'in' ? 'credit' : 'debit', // In = Eu devo (+), Out = Eu paguei (-)
       icon: t.type === 'in' ? <ArrowDownLeft className="text-emerald-500" /> : <ArrowUpRight className="text-rose-500" />,
-      label: t.type === 'in' ? 'Recebido' : 'Pago'
+      label: t.type === 'in' ? 'Recebido' : 'Pago (PIX)'
     }));
 
-  const personCards = transactions
-    .filter(t => t.recipient_name === personName)
-    .map(t => ({
-      id: t.id,
-      date: new Date(t.purchase_date),
-      description: `Cartão: ${t.description}`,
-      amount: t.total_amount,
-      type: 'debit', // Ele usou meu cartão = Ele me deve (abate do que eu devo a ele)
-      icon: <CreditCard className="text-indigo-500" />,
-      label: 'Gasto Cartão'
-    }));
+  // 2. Histórico de Parcelas de Cartão PAGAS (conforme solicitado)
+  const personInstallments = installments
+    .filter(inst => {
+      const tx = transactions.find(t => t.id === inst.transaction_id);
+      return tx?.recipient_name === personName && inst.status === 'paid';
+    })
+    .map(inst => {
+      const tx = transactions.find(t => t.id === inst.transaction_id)!;
+      return {
+        id: inst.id,
+        date: new Date(inst.due_date),
+        description: `Parcela ${inst.number}/${tx.installments_count}: ${tx.description}`,
+        amount: inst.amount,
+        type: 'debit', // Parcela paga = Abate da dívida
+        icon: <CreditCard className="text-indigo-500" />,
+        label: 'Pago (Cartão)'
+      };
+    });
 
-  const history = [...personTransfers, ...personCards].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const history = [...personTransfers, ...personInstallments].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const totalBalance = history.reduce((acc, item) => {
     return item.type === 'credit' ? acc + item.amount : acc - item.amount;

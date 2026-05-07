@@ -18,7 +18,7 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Cálculos PIX
+  // Cálculos PIX (Geral)
   const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
@@ -31,17 +31,22 @@ const Index = () => {
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   }).reduce((acc, i) => acc + i.amount, 0);
 
-  // Saldo por Pessoa (Unificado: PIX + Cartão)
+  // Saldo por Pessoa (Unificado)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
+    // In = Eu devo (+), Out = Eu paguei (-)
     const amount = t.type === 'in' ? t.amount : -t.amount;
     acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
     return acc;
   }, {});
 
-  // Abater gastos que a pessoa fez no meu cartão (ela me deve, então diminui o que eu devo a ela)
-  transactions.forEach(tx => {
-    if (tx.recipient_name) {
-      balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - tx.total_amount;
+  // Abater apenas as parcelas de cartão que já foram PAGAS (conforme solicitado)
+  installments.forEach(inst => {
+    if (inst.status === 'paid') {
+      const tx = transactions.find(t => t.id === inst.transaction_id);
+      if (tx && tx.recipient_name) {
+        // Se eu paguei a parcela do que ele usou, eu "paguei" parte da minha dívida com ele
+        balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
+      }
     }
   });
 
