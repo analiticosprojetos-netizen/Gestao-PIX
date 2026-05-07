@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Upload, X } from 'lucide-react';
+import { Camera, Upload, X, DollarSign, User, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TransferDialogProps {
   open: boolean;
@@ -20,8 +21,8 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
     amount: '',
     date: new Date().toISOString().split('T')[0],
     friend_name: '',
-    type: 'out' as 'in' | 'out',
-    status: 'pending' as 'pending' | 'completed'
+    type: 'in' as 'in' | 'out',
+    status: 'completed' as 'pending' | 'completed'
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,8 +47,8 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
       amount: '',
       date: new Date().toISOString().split('T')[0],
       friend_name: '',
-      type: 'out',
-      status: 'pending'
+      type: 'in',
+      status: 'completed'
     });
     setSelectedFile(null);
   };
@@ -59,126 +60,139 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if(!o) resetForm(); }}>
-      <DialogContent className="sm:max-w-[425px] rounded-t-3xl sm:rounded-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Movimentação PIX</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={formData.type} onValueChange={(v: any) => setFormData({...formData, type: v})}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="in">Recebi (Entrada)</SelectItem>
-                  <SelectItem value="out">Enviei (Saída)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formData.status} onValueChange={(v: any) => setFormData({...formData, status: v})}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+    <Drawer open={open} onOpenChange={(o) => { onOpenChange(o); if(!o) resetForm(); }}>
+      <DrawerContent className="dark:bg-slate-900 border-none rounded-t-[32px]">
+        <div className="mx-auto w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full my-4" />
+        
+        <DrawerHeader className="text-left px-6">
+          <DrawerTitle className="text-2xl font-bold">Nova Movimentação</DrawerTitle>
+          <DrawerDescription>Registre entradas ou saídas de PIX</DrawerDescription>
+        </DrawerHeader>
 
-          <div className="space-y-2">
-            <Label>Descrição (Ex: Repasse Lucio, Aluguel...)</Label>
-            <Input 
-              className="rounded-xl"
-              placeholder="O que é isso?" 
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Pessoa / Contato (Ex: Lucio, Transportadora)</Label>
-            <Input 
-              className="rounded-xl"
-              placeholder="Nome da pessoa" 
-              value={formData.friend_name}
-              onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input 
-                className="rounded-xl"
-                type="number" 
-                step="0.01" 
-                placeholder="0,00"
-                value={formData.amount}
-                onChange={(e) => setFormData({...formData, amount: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Data</Label>
-              <Input 
-                className="rounded-xl"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Comprovante</Label>
-            <div 
-              onClick={() => fileInputRef.current?.click()}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-10 overflow-y-auto max-h-[80vh]">
+          {/* Seletor de Tipo Estilizado */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, type: 'in'})}
               className={cn(
-                "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors",
-                selectedFile ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" : "border-slate-200 dark:border-slate-800 hover:border-indigo-400"
+                "h-14 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border-2",
+                formData.type === 'in' 
+                  ? "bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/30" 
+                  : "bg-slate-50 border-transparent text-slate-500 dark:bg-slate-800"
               )}
             >
-              {selectedFile ? (
-                <div className="flex items-center gap-2 text-emerald-600 font-medium">
-                  <Upload size={20} />
-                  <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
-                    className="p-1 hover:bg-emerald-100 rounded-full"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Camera className="text-slate-400" size={24} />
-                  <span className="text-xs text-slate-500">Clique para subir foto ou PDF</span>
-                </>
+              <DollarSign size={20} /> Recebi
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, type: 'out'})}
+              className={cn(
+                "h-14 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all border-2",
+                formData.type === 'out' 
+                  ? "bg-rose-50 border-rose-500 text-rose-700 dark:bg-rose-950/30" 
+                  : "bg-slate-50 border-transparent text-slate-500 dark:bg-slate-800"
               )}
-            </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*,application/pdf"
-              onChange={handleFileChange}
-            />
+            >
+              <DollarSign size={20} /> Enviei
+            </button>
           </div>
 
-          <Button type="submit" className="w-full bg-indigo-600 h-12 text-lg rounded-2xl mt-4 shadow-lg shadow-indigo-200 dark:shadow-none">
-            Salvar Movimentação
+          <div className="space-y-4">
+            <div className="relative">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Valor</Label>
+              <div className="relative mt-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">R$</span>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  placeholder="0,00"
+                  className="h-14 pl-12 text-xl font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-indigo-500"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
+                <Input 
+                  placeholder="Ex: Repasse Transportadora" 
+                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
+                <Input 
+                  placeholder="Nome da pessoa (ex: Lucio)" 
+                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                  value={formData.friend_name}
+                  onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Data</Label>
+                <Input 
+                  type="date"
+                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Status</Label>
+                <Select value={formData.status} onValueChange={(v: any) => setFormData({...formData, status: v})}>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Comprovante</Label>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all",
+                  selectedFile ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20" : "border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                )}
+              >
+                {selectedFile ? (
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                    <FileText size={20} />
+                    <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+                    <X size={16} onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }} className="ml-2" />
+                  </div>
+                ) : (
+                  <>
+                    <Camera className="text-slate-400" size={24} />
+                    <span className="text-xs text-slate-500 font-medium">Anexar foto ou PDF</span>
+                  </>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full bg-indigo-600 h-14 text-lg font-bold rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none">
+            Salvar Registro
           </Button>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
-import { cn } from '@/lib/utils';
 export default TransferDialog;

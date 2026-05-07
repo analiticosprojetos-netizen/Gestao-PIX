@@ -119,25 +119,16 @@ const Index = () => {
                 <p className="text-slate-400 text-sm italic">Nenhum saldo pendente</p>
               </div>
             )}
-
-            {peopleWithBalance.length > 5 && (
-              <Link to="/pix" className="text-center text-indigo-600 text-sm font-bold py-2 flex items-center justify-center gap-1">
-                Ver todos os contatos <ChevronRight size={16} />
-              </Link>
-            )}
           </div>
         </section>
 
-        {/* Atalho Rápido */}
-        <div className="pt-4">
-          <Button 
-            onClick={() => setDialogOpen(true)}
-            className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 rounded-2xl text-lg font-bold shadow-lg shadow-indigo-200 dark:shadow-none flex gap-2"
-          >
-            <Plus size={24} />
-            Nova Movimentação
-          </Button>
-        </div>
+        {/* Botão Flutuante (+) */}
+        <Button 
+          onClick={() => setDialogOpen(true)}
+          className="fixed bottom-20 right-6 h-16 w-16 rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-300 dark:shadow-none z-50 flex items-center justify-center p-0"
+        >
+          <Plus size={32} className="text-white" />
+        </Button>
       </div>
 
       <TransferDialog 
