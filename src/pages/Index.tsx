@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, History } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -120,10 +120,10 @@ const Index = () => {
 
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-amber-500/20 rounded-lg"><History size={14} className="text-amber-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">Prévia</p>
+                <div className="p-1.5 bg-rose-500/20 rounded-lg"><CreditCard size={14} className="text-rose-300" /></div>
+                <p className="text-[9px] text-rose-100 uppercase font-bold">Prévia</p>
               </div>
-              <p className="text-xs font-bold">R$ {formatCurrency(totalPendingCards)}</p>
+              <p className="text-xs font-bold text-rose-200">R$ {formatCurrency(totalPendingCards)}</p>
             </div>
           </div>
         </section>
