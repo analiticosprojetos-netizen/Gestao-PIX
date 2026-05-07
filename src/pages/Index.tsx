@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, Landmark } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -14,8 +14,10 @@ import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { transfers, addTransfer } = useTransfers();
   const { installments, transactions } = useCards();
   const { settings } = useSettings();
@@ -130,7 +132,10 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800">
+        <button 
+          onClick={() => navigate('/cards')}
+          className="w-full text-left bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800 active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        >
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <CreditCard className="text-indigo-600" size={20} />
@@ -147,7 +152,7 @@ const Index = () => {
             </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
           </div>
-        </section>
+        </button>
 
         <section className="space-y-4">
           <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
