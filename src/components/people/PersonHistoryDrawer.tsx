@@ -6,7 +6,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownLeft, CreditCard, X } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, CreditCard, X, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PersonHistoryDrawerProps {
@@ -21,6 +21,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
 
   if (!personName) return null;
 
+  // 1. Histórico de PIX (usando o status real)
   const personTransfers = transfers
     .filter(t => t.friend_name === personName)
     .map(t => ({
@@ -29,11 +30,12 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       description: t.description,
       amount: t.amount,
       type: t.type === 'in' ? 'credit' : 'debit',
-      icon: t.type === 'in' ? <ArrowDownLeft className="text-emerald-500" /> : <ArrowUpRight className="text-rose-500" />,
+      icon: t.type === 'in' ? <ArrowDownLeft className={cn(t.status === 'completed' ? "text-slate-400" : "text-emerald-500")} /> : <ArrowUpRight className={cn(t.status === 'completed' ? "text-slate-400" : "text-rose-500")} />,
       label: t.type === 'in' ? 'Recebido' : 'Pago (PIX)',
-      status: 'completed'
+      status: t.status // 'completed' ou 'pending'
     }));
 
+  // 2. Histórico de Parcelas de Cartão
   const personInstallments = installments
     .filter(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
@@ -47,9 +49,9 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         description: `Parcela ${inst.number}/${tx.installments_count}: ${tx.description}`,
         amount: inst.amount,
         type: 'debit',
-        icon: <CreditCard className={cn(inst.status === 'paid' ? "text-indigo-400" : "text-indigo-600")} />,
+        icon: <CreditCard className={cn(inst.status === 'paid' ? "text-slate-400" : "text-indigo-500")} />,
         label: inst.status === 'paid' ? 'Pago (Cartão)' : 'Dívida (Cartão)',
-        status: inst.status
+        status: inst.status // 'paid' ou 'pending'
       };
     });
 
@@ -78,20 +80,54 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
           <button onClick={() => onOpenChange(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full"><X size={20} /></button>
         </DrawerHeader>
         <div className="p-6 overflow-y-auto space-y-4">
-          {history.map((item) => (
-            <div key={item.id} className={cn("flex items-center justify-between p-4 rounded-2xl border transition-all", item.type === 'debit' ? "bg-rose-50/30 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800")}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm">{item.icon}</div>
-                <div>
-                  <p className="font-bold text-sm leading-tight text-slate-800 dark:text-slate-100">{item.description}</p>
-                  <p className="text-[10px] text-slate-500">{item.label} • {format(item.date, "dd/MM/yyyy", { locale: ptBR })}</p>
+          {history.map((item) => {
+            const isSettled = item.status === 'completed' || item.status === 'paid';
+            
+            return (
+              <div 
+                key={item.id} 
+                className={cn(
+                  "flex items-center justify-between p-4 rounded-2xl border transition-all", 
+                  isSettled 
+                    ? "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 opacity-70" 
+                    : item.type === 'debit' 
+                      ? "bg-rose-50/30 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900/30" 
+                      : "bg-emerald-50/30 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/30"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm">{item.icon}</div>
+                  <div>
+                    <p className={cn(
+                      "font-bold text-sm leading-tight", 
+                      isSettled ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"
+                    )}>
+                      {item.description}
+                    </p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <p className="text-[10px] text-slate-500">{item.label} • {format(item.date, "dd/MM/yyyy", { locale: ptBR })}</p>
+                      {isSettled ? 
+                        <CheckCircle2 size={10} className="text-slate-400" /> : 
+                        <Clock size={10} className="text-amber-500" />
+                      }
+                    </div>
+                  </div>
                 </div>
+                <p className={cn(
+                  "font-bold font-mono text-sm", 
+                  isSettled 
+                    ? "text-slate-400" 
+                    : item.type === 'credit' ? "text-emerald-600" : "text-rose-600"
+                )}>
+                  {item.type === 'credit' ? '+' : '-'} R$ {formatCurrency(item.amount)}
+                </p>
               </div>
-              <p className={cn("font-bold font-mono text-sm", item.type === 'credit' ? "text-emerald-600" : "text-rose-600")}>
-                {item.type === 'credit' ? '+' : '-'} R$ {formatCurrency(item.amount)}
-              </p>
-            </div>
-          ))}
+            );
+          })}
+          
+          {history.length === 0 && (
+            <div className="text-center py-12 text-slate-400 italic">Nenhum histórico encontrado</div>
+          )}
         </div>
       </DrawerContent>
     </Drawer>
