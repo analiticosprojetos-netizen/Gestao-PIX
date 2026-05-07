@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -47,9 +47,16 @@ const Index = () => {
     return { total, pending, monthName, dueDate: firstPendingDate.getDate() };
   }, [installments, settings.cardClosingDay]);
 
+  // 3. Cálculo da Prévia (Total de todas as parcelas pendentes de cartão)
+  const totalPendingCards = useMemo(() => {
+    return installments
+      .filter(i => i.status === 'pending')
+      .reduce((acc, i) => acc + i.amount, 0);
+  }, [installments]);
+
   const netBalance = pixBalance.balance - activeInvoice.pending;
 
-  // 4. Saldo por Pessoa (Unificado: PIX + TODAS as parcelas de Cartão)
+  // 4. Saldo por Pessoa
   const peopleWithBalance = useMemo(() => {
     const balances: Record<string, number> = {};
     settings.contacts.forEach(name => { balances[name] = 0; });
@@ -59,7 +66,6 @@ const Index = () => {
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // Subtrai TODAS as parcelas (Pagas ou Pendentes), pois o gasto existiu
     installments.forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
@@ -94,20 +100,30 @@ const Index = () => {
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md"><Wallet size={28} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-white/10 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-xl"><ArrowDownLeft size={18} className="text-emerald-300" /></div>
-              <div>
-                <p className="text-[10px] text-indigo-100 uppercase font-bold">Entradas</p>
-                <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalIn)}</p>
+          
+          <div className="grid grid-cols-3 gap-2 mt-8 pt-6 border-t border-white/10 relative z-10">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/20 rounded-lg"><ArrowDownLeft size={14} className="text-emerald-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Entradas</p>
               </div>
+              <p className="text-xs font-bold">R$ {formatCurrency(pixBalance.totalIn)}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 rounded-xl"><ArrowUpRight size={18} className="text-rose-300" /></div>
-              <div>
-                <p className="text-[10px] text-indigo-100 uppercase font-bold">Saídas</p>
-                <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalOut)}</p>
+            
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-rose-500/20 rounded-lg"><ArrowUpRight size={14} className="text-rose-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Saídas</p>
               </div>
+              <p className="text-xs font-bold">R$ {formatCurrency(pixBalance.totalOut)}</p>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-amber-500/20 rounded-lg"><History size={14} className="text-amber-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Prévia</p>
+              </div>
+              <p className="text-xs font-bold">R$ {formatCurrency(totalPendingCards)}</p>
             </div>
           </div>
         </section>
