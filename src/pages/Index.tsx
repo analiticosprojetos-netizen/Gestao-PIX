@@ -12,7 +12,6 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { isWithinInterval, startOfMonth, endOfMonth, addMonths, subMonths, setDate } from 'date-fns';
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
@@ -26,28 +25,14 @@ const Index = () => {
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
 
-  // 2. Cálculo da Fatura Atual (Baseado no dia de fechamento)
+  // 2. Cálculo da Fatura do Mês Atual (Simplificado)
   const today = new Date();
-  const closingDay = settings.cardClosingDay;
-  
-  // Define o início e fim do ciclo da fatura atual
-  let cycleStart, cycleEnd;
-  if (today.getDate() > closingDay) {
-    cycleStart = setDate(today, closingDay + 1);
-    cycleEnd = setDate(addMonths(today, 1), closingDay);
-  } else {
-    cycleStart = setDate(subMonths(today, 1), closingDay + 1);
-    cycleEnd = setDate(today, closingDay);
-  }
-
-  // Filtra parcelas que vencem no mês atual (ou próximo, dependendo do fechamento)
-  // Para simplificar e garantir que apareça, vamos pegar tudo que vence no mês/ano atual
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
+  // Filtra todas as parcelas que vencem no mês atual
   const currentInvoiceInstallments = installments.filter(i => {
     const dueDate = new Date(i.due_date);
-    // Se a data de vencimento for no mesmo mês e ano, ou se for o próximo mês mas a fatura já fechou
     return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
   });
 
@@ -56,22 +41,25 @@ const Index = () => {
     .filter(i => i.status === 'pending')
     .reduce((acc, i) => acc + i.amount, 0);
 
-  // 3. Saldo Líquido (PIX - Fatura Pendente)
+  // 3. Saldo Líquido (O que você tem no PIX menos o que ainda tem que pagar de fatura este mês)
   const netBalance = pixBalance - currentInvoicePending;
 
   // 4. Saldo por Pessoa (Unificado)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
+    // Se eu recebi (in), eu devo (+). Se eu enviei (out), ele me deve (-).
     const amount = t.type === 'in' ? t.amount : -t.amount;
     acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
     return acc;
   }, {});
 
-  // Abate do saldo da pessoa quando a parcela é paga
+  // Adiciona as dívidas de cartão ao saldo da pessoa
+  // Se a pessoa usou meu cartão, ela me deve (saldo negativo)
   installments.forEach(inst => {
     const tx = transactions.find(t => t.id === inst.transaction_id);
     if (tx && tx.recipient_name) {
-      // Se a parcela está paga, ela abate da dívida (diminui o que você deve)
-      if (inst.status === 'paid') {
+      // Se a parcela ainda não foi "paga" (ou seja, a pessoa ainda não me acertou esse valor)
+      // ela conta como algo que a pessoa me deve (-)
+      if (inst.status === 'pending') {
         balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
       }
     }
@@ -144,7 +132,7 @@ const Index = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <CreditCard className="text-indigo-600" size={20} />
-              <h3 className="font-bold dark:text-white">Fatura Atual</h3>
+              <h3 className="font-bold dark:text-white">Fatura de {new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(today)}</h3>
             </div>
             <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDateDisplay > 31 ? dueDateDisplay - 31 : dueDateDisplay}</Badge>
           </div>
@@ -152,7 +140,7 @@ const Index = () => {
             <div>
               <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoiceTotal)}</p>
               {currentInvoicePending > 0 && (
-                <p className="text-[10px] text-amber-600 font-bold mt-1">Faltam R$ {formatCurrency(currentInvoicePending)}</p>
+                <p className="text-[10px] text-amber-600 font-bold mt-1">Pendente: R$ {formatCurrency(currentInvoicePending)}</p>
               )}
             </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
@@ -197,6 +185,9 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+            {peopleWithBalance.length === 0 && (
+              <div className="text-center py-8 text-slate-400 italic text-sm">Nenhum saldo pendente</div>
+            )}
           </div>
         </section>
 
