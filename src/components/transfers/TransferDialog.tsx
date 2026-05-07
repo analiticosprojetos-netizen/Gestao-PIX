@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Upload, X, DollarSign, User, FileText } from 'lucide-react';
+import { Camera, X, DollarSign, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TransferDialogProps {
@@ -61,15 +61,21 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
 
   return (
     <Drawer open={open} onOpenChange={(o) => { onOpenChange(o); if(!o) resetForm(); }}>
-      <DrawerContent className="dark:bg-slate-900 border-none rounded-t-[32px]">
+      <DrawerContent className="dark:bg-slate-900 border-none rounded-t-[32px] max-w-lg mx-auto">
         <div className="mx-auto w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full my-4" />
         
-        <DrawerHeader className="text-left px-6">
+        <DrawerHeader className="text-left px-6 relative">
           <DrawerTitle className="text-2xl font-bold">Nova Movimentação</DrawerTitle>
           <DrawerDescription>Registre entradas ou saídas de PIX</DrawerDescription>
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="absolute right-6 top-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
         </DrawerHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-10 overflow-y-auto max-h-[80vh]">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-10 overflow-y-auto max-h-[85vh]">
           {/* Seletor de Tipo Estilizado */}
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -114,26 +120,24 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
-                <Input 
-                  placeholder="Ex: Repasse Transportadora" 
-                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
+              <Input 
+                placeholder="Ex: Repasse Transportadora" 
+                className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+              />
+            </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
-                <Input 
-                  placeholder="Nome da pessoa (ex: Lucio)" 
-                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
-                  value={formData.friend_name}
-                  onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
-                />
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
+              <Input 
+                placeholder="Nome da pessoa (ex: Lucio)" 
+                className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                value={formData.friend_name}
+                onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
