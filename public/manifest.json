@@ -1,6 +1,6 @@
 {
-  "short_name": "AlertaBoleto",
-  "name": "AlertaBoleto - Gestor de Contas",
+  "short_name": "GestaoPIX",
+  "name": "GestaoPIX - Controle Financeiro",
   "icons": [
     {
       "src": "/icon.svg",

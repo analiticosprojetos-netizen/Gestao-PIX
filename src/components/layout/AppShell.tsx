@@ -20,7 +20,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">Gestão de PIX</h1>
+        <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">GestaoPIX</h1>
         <button 
           onClick={toggleTheme}
           className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-all hover:scale-110 active:scale-95"
