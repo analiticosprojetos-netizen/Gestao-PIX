@@ -5,8 +5,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, X, DollarSign, FileText } from 'lucide-react';
+import { Camera, X, DollarSign, FileText, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -20,8 +19,8 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
   const { settings } = useSettings();
   const [formData, setFormData] = useState({
     description: '',
-    amount: '', // Valor formatado para exibição
-    rawAmount: 0, // Valor numérico real
+    amount: '', 
+    rawAmount: 0, 
     date: new Date().toISOString().split('T')[0],
     friend_name: '',
     type: 'in' as 'in' | 'out',
@@ -140,23 +139,29 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
-              <Select value={formData.friend_name} onValueChange={(v) => setFormData({...formData, friend_name: v})}>
-                <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none">
-                  <SelectValue placeholder="Selecione uma pessoa" />
-                </SelectTrigger>
-                <SelectContent>
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Vincular ao Saldo de:</Label>
+              <div className="relative">
+                <Input 
+                  placeholder="Digite o nome (ex: Lúcio)" 
+                  className="h-12 pl-10 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+                  value={formData.friend_name}
+                  onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
+                  list="contacts-list"
+                />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <datalist id="contacts-list">
                   {settings.contacts.map(contact => (
-                    <SelectItem key={contact} value={contact}>{contact}</SelectItem>
+                    <option key={contact} value={contact} />
                   ))}
-                </SelectContent>
-              </Select>
+                </datalist>
+              </div>
+              <p className="text-[10px] text-slate-400 ml-1">Mesmo que receba de empresa, coloque o nome da pessoa aqui para abater a dívida dela.</p>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição / Origem</Label>
               <Input 
-                placeholder="Ex: Repasse Transportadora" 
+                placeholder="Ex: Recebido da Transportadora X" 
                 className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -175,15 +180,14 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Status</Label>
-                <Select value={formData.status} onValueChange={(v: any) => setFormData({...formData, status: v})}>
-                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="completed">Concluído</SelectItem>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  className="w-full h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none px-3 text-sm"
+                  value={formData.status}
+                  onChange={(e) => setFormData({...formData, status: e.target.value as any})}
+                >
+                  <option value="completed">Concluído</option>
+                  <option value="pending">Pendente</option>
+                </select>
               </div>
             </div>
 
