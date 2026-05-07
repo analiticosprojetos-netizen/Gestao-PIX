@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -20,30 +20,41 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Cálculos PIX (Geral)
-  const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+  // 1. Cálculos PIX (Dinheiro em conta)
+  consttotalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
 
-  // Cálculos Cartão (Fatura Atual)
+  // 2. Cálculos Cartão (Fatura Atual - Pendente)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const currentInvoice = installments.filter(i => {
+  
+  const currentInvoiceTotal = installments.filter(i => {
     const date = new Date(i.due_date);
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   }).reduce((acc, i) => acc + i.amount, 0);
 
-  // Saldo por Pessoa (Unificado)
+  const currentInvoicePending = installments.filter(i => {
+    const date = new Date(i.due_date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear && i.status === 'pending';
+  }).reduce((acc, i) => acc + i.amount, 0);
+
+  // 3. Saldo Líquido (PIX - Fatura Pendente)
+  const netBalance = pixBalance - currentInvoicePending;
+
+  // 4. Saldo por Pessoa (Unificado)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
     const amount = t.type === 'in' ? t.amount : -t.amount;
     acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
     return acc;
   }, {});
 
+  // Abate do saldo da pessoa quando a parcela é paga
   installments.forEach(inst => {
-    if (inst.status === 'paid') {
-      const tx = transactions.find(t => t.id === inst.transaction_id);
-      if (tx && tx.recipient_name) {
+    const tx = transactions.find(t => t.id === inst.transaction_id);
+    if (tx && tx.recipient_name) {
+      // Se a parcela está paga, ela abate da dívida (diminui o que você deve ou aumenta o que te devem)
+      if (inst.status === 'paid') {
         balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
       }
     }
@@ -75,6 +86,14 @@ const Index = () => {
               <h2 className="text-4xl font-bold mt-1">
                 R$ {formatCurrency(pixBalance)}
               </h2>
+              
+              {/* Prévia do Saldo Líquido */}
+              <div className="mt-3 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
+                <Calculator size={14} className="text-indigo-200" />
+                <p className="text-[11px] font-medium text-indigo-50">
+                  Líquido: <span className="font-bold">R$ {formatCurrency(netBalance)}</span>
+                </p>
+              </div>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
               <Wallet className="text-white" size={28} />
@@ -113,7 +132,12 @@ const Index = () => {
             <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDate > 31 ? dueDate - 31 : dueDate}</Badge>
           </div>
           <div className="flex justify-between items-end">
-            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoice)}</p>
+            <div>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoiceTotal)}</p>
+              {currentInvoicePending > 0 && (
+                <p className="text-[10px] text-amber-600 font-bold mt-1">Faltam R$ {formatCurrency(currentInvoicePending)}</p>
+              )}
+            </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
           </div>
         </section>
