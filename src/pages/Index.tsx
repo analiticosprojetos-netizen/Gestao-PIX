@@ -21,7 +21,7 @@ const Index = () => {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   // 1. Cálculos PIX (Dinheiro em conta)
-  consttotalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+  const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
 
