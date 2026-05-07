@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, CheckCircle2, Circle } from 'lucide-react';
+import { Search, CheckCircle2, Circle, Trash2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,10 +12,9 @@ import { cn } from "@/lib/utils";
 import { useCards } from '@/context/CardContext';
 import CardTransactionDialog from '@/components/cards/CardTransactionDialog';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 
 const Cards = () => {
-  const { transactions, installments, toggleInstallmentPaid, addTransaction } = useCards();
+  const { transactions, installments, toggleInstallmentPaid, addTransaction, deleteTransaction } = useCards();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -55,8 +54,20 @@ const Cards = () => {
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {formatCurrency(inst.amount)}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {formatCurrency(inst.amount)}</p>
+            </div>
+            <button 
+              onClick={() => {
+                if(confirm("Deseja excluir toda esta compra (todas as parcelas)?")) {
+                  deleteTransaction(tx.id);
+                }
+              }}
+              className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+            >
+              <Trash2 size={18} />
+            </button>
           </div>
         </CardContent>
       </Card>

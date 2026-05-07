@@ -4,12 +4,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CardTransaction, CardInstallment } from '@/types/transfer';
 import { supabase } from '@/lib/supabase';
 import { showSuccess, showError } from '@/utils/toast';
-import { addMonths, setDate, isAfter } from 'date-fns';
+import { addMonths, setDate } from 'date-fns';
 
 interface CardContextType {
   transactions: CardTransaction[];
   installments: CardInstallment[];
   addTransaction: (data: Omit<CardTransaction, 'id' | 'created_at'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   toggleInstallmentPaid: (id: string) => Promise<void>;
   loading: boolean;
 }
@@ -41,7 +42,6 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const addTransaction = async (data: Omit<CardTransaction, 'id' | 'created_at'>) => {
     try {
-      // 1. Salvar a transação principal
       const { data: tx, error: txError } = await supabase
         .from('card_transactions')
         .insert([data])
@@ -50,14 +50,12 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (txError) throw txError;
 
-      // 2. Gerar as parcelas
       const newInstallments = [];
       const installmentAmount = parseFloat((data.total_amount / data.installments_count).toFixed(2));
       
       for (let i = 1; i <= data.installments_count; i++) {
-        let dueDate = setDate(addMonths(new Date(data.purchase_date), i), data.closing_day + 7); // Vencimento 7 dias após fechamento
+        let dueDate = setDate(addMonths(new Date(data.purchase_date), i), data.closing_day + 7);
         
-        // Se a compra foi após o fechamento, a primeira parcela pula um mês
         const purchaseDay = new Date(data.purchase_date).getDate();
         if (purchaseDay >= data.closing_day) {
           dueDate = addMonths(dueDate, 1);
@@ -84,6 +82,20 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const deleteTransaction = async (id: string) => {
+    try {
+      // O Supabase está configurado com ON DELETE CASCADE, então deletar a transação deleta as parcelas
+      const { error } = await supabase.from('card_transactions').delete().eq('id', id);
+      if (error) throw error;
+      
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      setInstallments(prev => prev.filter(i => i.transaction_id !== id));
+      showSuccess("Compra removida com sucesso");
+    } catch (err) {
+      showError("Erro ao remover compra");
+    }
+  };
+
   const toggleInstallmentPaid = async (id: string) => {
     try {
       const installment = installments.find(i => i.id === id);
@@ -103,7 +115,7 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <CardContext.Provider value={{ transactions, installments, addTransaction, toggleInstallmentPaid, loading }}>
+    <CardContext.Provider value={{ transactions, installments, addTransaction, deleteTransaction, toggleInstallmentPaid, loading }}>
       {children}
     </CardContext.Provider>
   );
