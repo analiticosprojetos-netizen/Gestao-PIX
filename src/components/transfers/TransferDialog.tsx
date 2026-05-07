@@ -5,9 +5,13 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, X, DollarSign, FileText, User } from 'lucide-react';
+import { Camera, X, DollarSign, FileText, User, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface TransferDialogProps {
   open: boolean;
@@ -21,7 +25,7 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
     description: '',
     amount: '', 
     rawAmount: 0, 
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(),
     friend_name: '',
     type: 'in' as 'in' | 'out',
     status: 'completed' as 'pending' | 'completed'
@@ -52,7 +56,7 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
     onSubmit({
       ...formData,
       amount: formData.rawAmount,
-      date: new Date(formData.date + 'T12:00:00')
+      date: formData.date
     }, selectedFile || undefined);
     
     onOpenChange(false);
@@ -64,7 +68,7 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
       description: '',
       amount: '',
       rawAmount: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date(),
       friend_name: '',
       type: 'in',
       status: 'completed'
@@ -155,7 +159,6 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
                   ))}
                 </datalist>
               </div>
-              <p className="text-[10px] text-slate-400 ml-1">Mesmo que receba de empresa, coloque o nome da pessoa aqui para abater a dívida dela.</p>
             </div>
 
             <div className="space-y-1">
@@ -171,12 +174,29 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Data</Label>
-                <Input 
-                  type="date"
-                  className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full h-12 justify-start text-left font-normal rounded-xl bg-slate-50 dark:bg-slate-800 border-none",
+                        !formData.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                      {formData.date ? format(formData.date, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.date}
+                      onSelect={(date) => date && setFormData({...formData, date})}
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Status</Label>
