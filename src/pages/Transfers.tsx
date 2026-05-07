@@ -33,16 +33,25 @@ const Transfers = () => {
     updateTransfer(transfer.id, { status: newStatus });
   };
 
+  const toggleType = (transfer: any) => {
+    const newType = transfer.type === 'in' ? 'out' : 'in';
+    updateTransfer(transfer.id, { type: newType });
+  };
+
   const TransferItem = ({ transfer }: { transfer: any }) => (
     <Card className="border-none shadow-sm mb-3 dark:bg-slate-900 overflow-hidden">
       <CardContent className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "p-2 rounded-full",
-            transfer.type === 'in' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
-          )}>
+          <button 
+            onClick={() => toggleType(transfer)}
+            className={cn(
+              "p-2 rounded-full transition-transform active:scale-90",
+              transfer.type === 'in' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+            )}
+            title="Clique para inverter Entrada/Saída"
+          >
             {transfer.type === 'in' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
-          </div>
+          </button>
           <div>
             <p className="font-bold text-slate-800 dark:text-slate-100 leading-tight">{transfer.description}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
