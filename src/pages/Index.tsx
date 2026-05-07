@@ -14,7 +14,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -132,9 +132,9 @@ const Index = () => {
           </div>
         </section>
 
-        <button 
-          onClick={() => navigate('/cards')}
-          className="w-full text-left bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800 active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        <Link 
+          to="/cards"
+          className="block w-full text-left bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800 active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
         >
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ const Index = () => {
             </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
           </div>
-        </button>
+        </Link>
 
         <section className="space-y-4">
           <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
