@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 const Transfers = () => {
-  const { transfers, deleteTransfer, addTransfer } = useTransfers();
+  const { transfers, deleteTransfer, addTransfer, updateTransfer } = useTransfers();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -26,6 +26,11 @@ const Transfers = () => {
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const toggleStatus = (transfer: any) => {
+    const newStatus = transfer.status === 'completed' ? 'pending' : 'completed';
+    updateTransfer(transfer.id, { status: newStatus });
   };
 
   const TransferItem = ({ transfer }: { transfer: any }) => (
@@ -53,12 +58,19 @@ const Transfers = () => {
             )}>
               {transfer.type === 'in' ? '+' : '-'} R$ {formatCurrency(transfer.amount)}
             </p>
-            <div className="flex items-center justify-end gap-1">
+            <button 
+              onClick={() => toggleStatus(transfer)}
+              className="flex items-center justify-end gap-1 w-full mt-1"
+            >
               {transfer.status === 'completed' ? 
-                <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-bold"><CheckCircle2 size={10} /> Pago</span> :
-                <span className="text-[10px] text-amber-500 flex items-center gap-1 font-bold"><Clock size={10} /> Pendente</span>
+                <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 size={10} /> Pago
+                </span> :
+                <span className="text-[10px] text-amber-500 flex items-center gap-1 font-bold bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full">
+                  <Clock size={10} /> Pendente
+                </span>
               }
-            </div>
+            </button>
           </div>
           
           <div className="flex flex-col gap-1">
