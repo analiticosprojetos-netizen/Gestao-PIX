@@ -1,10 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="0" y="0" width="24" height="24" rx="6" fill="#4f46e5" stroke="none"/>
-  <path d="M3 21h18" />
-  <path d="M19 21v-4" />
-  <path d="M5 21v-4" />
-  <path d="M17 21v-4" />
-  <path d="M7 21v-4" />
-  <path d="M2 17h20L12 7L2 17z" />
-  <circle cx="12" cy="13" r="2" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Fundo Arredondado -->
+  <rect width="512" height="512" rx="120" fill="url(#grad)"/>
+  
+  <!-- Símbolo Central (Escudo + Diamante PIX) -->
+  <path d="M256 80l-140 60v100c0 110 140 192 140 192s140-82 140-192V140l-140-60z" fill="white" opacity="0.2"/>
+  <path d="M256 140l80 80-80 80-80-80 80-80z" fill="white"/>
+  <path d="M256 300l40-40h-80l40 40z" fill="white" opacity="0.8"/>
+  <path d="M256 140l-40 40h80l-40-40z" fill="white" opacity="0.8"/>
 </svg>
