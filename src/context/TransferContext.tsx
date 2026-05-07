@@ -7,7 +7,7 @@ import { showSuccess, showError } from '@/utils/toast';
 
 interface TransferContextType {
   transfers: Transfer[];
-  addTransfer: (transfer: Omit<Transfer, 'id' | 'created_at'>) => Promise<void>;
+  addTransfer: (transfer: Omit<Transfer, 'id' | 'created_at'>, file?: File) => Promise<void>;
   updateTransfer: (id: string, updates: Partial<Transfer>) => Promise<void>;
   deleteTransfer: (id: string) => Promise<void>;
   loading: boolean;
@@ -44,8 +44,32 @@ export const TransferProvider = ({ children }: { children: React.ReactNode }) =>
     fetchTransfers();
   }, []);
 
-  const addTransfer = async (newTransfer: Omit<Transfer, 'id' | 'created_at'>) => {
+  const uploadReceipt = async (file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('receipts')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  const addTransfer = async (newTransfer: Omit<Transfer, 'id' | 'created_at'>, file?: File) => {
     try {
+      let receipt_url = newTransfer.receipt_url;
+
+      if (file) {
+        receipt_url = await uploadReceipt(file);
+      }
+
       const { data, error } = await supabase
         .from('transfers')
         .insert([{
@@ -55,7 +79,7 @@ export const TransferProvider = ({ children }: { children: React.ReactNode }) =>
           friend_name: newTransfer.friend_name,
           type: newTransfer.type,
           status: newTransfer.status,
-          receipt_url: newTransfer.receipt_url
+          receipt_url: receipt_url
         }])
         .select();
 
@@ -66,6 +90,7 @@ export const TransferProvider = ({ children }: { children: React.ReactNode }) =>
         showSuccess("Transferência registrada!");
       }
     } catch (err) {
+      console.error(err);
       showError("Erro ao salvar transferência");
     }
   };
