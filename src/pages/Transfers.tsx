@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUpRight, ArrowDownLeft, Search, Trash2, CheckCircle2, Clock, FileText, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Search, Trash2, CheckCircle2, Clock, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,6 +23,10 @@ const Transfers = () => {
     t.description.toLowerCase().includes(search.toLowerCase()) ||
     t.friend_name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   const TransferItem = ({ transfer }: { transfer: any }) => (
     <Card className="border-none shadow-sm mb-3 dark:bg-slate-900 overflow-hidden">
@@ -47,7 +51,7 @@ const Transfers = () => {
               "font-bold font-mono",
               transfer.type === 'in' ? "text-emerald-600" : "text-rose-600"
             )}>
-              {transfer.type === 'in' ? '+' : '-'} R$ {transfer.amount.toFixed(2)}
+              {transfer.type === 'in' ? '+' : '-'} R$ {formatCurrency(transfer.amount)}
             </p>
             <div className="flex items-center justify-end gap-1">
               {transfer.status === 'completed' ? 

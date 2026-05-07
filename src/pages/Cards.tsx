@@ -26,6 +26,10 @@ const Cards = () => {
            tx.recipient_name.toLowerCase().includes(search.toLowerCase());
   });
 
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const InstallmentItem = ({ inst }: { inst: any }) => {
     const tx = transactions.find(t => t.id === inst.transaction_id);
     if (!tx) return null;
@@ -52,7 +56,7 @@ const Cards = () => {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {inst.amount.toFixed(2)}</p>
+            <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {formatCurrency(inst.amount)}</p>
           </div>
         </CardContent>
       </Card>
