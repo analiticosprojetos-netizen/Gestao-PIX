@@ -12,7 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format, addMonths, isAfter, startOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Index = () => {
@@ -29,56 +29,41 @@ const Index = () => {
     return { totalIn, totalOut, balance: totalIn - totalOut };
   }, [transfers]);
 
-  // 2. Cálculo da Fatura Ativa (A próxima que tiver parcelas pendentes)
+  // 2. Cálculo da Fatura Ativa
   const activeInvoice = useMemo(() => {
     if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
-
-    // Encontra a data de vencimento mais próxima que ainda tem algo pendente
     const pendingInstallments = installments
       .filter(i => i.status === 'pending')
       .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
-
     if (pendingInstallments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
-
     const firstPendingDate = new Date(pendingInstallments[0].due_date);
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
-    
-    // Filtra todas as parcelas desse mesmo mês/ano
     const monthInstallments = installments.filter(i => {
       const d = new Date(i.due_date);
       return d.getMonth() === firstPendingDate.getMonth() && d.getFullYear() === firstPendingDate.getFullYear();
     });
-
     const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
     const pending = monthInstallments.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
-    const dueDate = firstPendingDate.getDate();
-
-    return { total, pending, monthName, dueDate };
+    return { total, pending, monthName, dueDate: firstPendingDate.getDate() };
   }, [installments, settings.cardClosingDay]);
 
-  // 3. Saldo Líquido (PIX - O que falta pagar da fatura ativa)
   const netBalance = pixBalance.balance - activeInvoice.pending;
 
-  // 4. Saldo por Pessoa (Unificado: PIX + Cartão)
+  // 4. Saldo por Pessoa (Unificado: PIX + TODAS as parcelas de Cartão)
   const peopleWithBalance = useMemo(() => {
     const balances: Record<string, number> = {};
-
-    // Inicializa contatos
     settings.contacts.forEach(name => { balances[name] = 0; });
 
-    // Soma PIX (In = Eu devo (+), Out = Ele me deve (-))
     transfers.forEach(t => {
       const amount = t.type === 'in' ? t.amount : -t.amount;
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // Subtrai Cartão (Se a pessoa usou meu cartão e não me pagou, ela me deve (-))
+    // Subtrai TODAS as parcelas (Pagas ou Pendentes), pois o gasto existiu
     installments.forEach(inst => {
-      if (inst.status === 'pending') {
-        const tx = transactions.find(t => t.id === inst.transaction_id);
-        if (tx && tx.recipient_name) {
-          balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
-        }
+      const tx = transactions.find(t => t.id === inst.transaction_id);
+      if (tx && tx.recipient_name) {
+        balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
       }
     });
 
@@ -94,17 +79,12 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Card de Saldo Principal */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-          
           <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Saldo em Conta (PIX)</p>
-              <h2 className="text-4xl font-bold mt-1">
-                R$ {formatCurrency(pixBalance.balance)}
-              </h2>
-              
+              <h2 className="text-4xl font-bold mt-1">R$ {formatCurrency(pixBalance.balance)}</h2>
               <div className="mt-3 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
                 <Calculator size={14} className="text-indigo-200" />
                 <p className="text-[11px] font-medium text-indigo-50">
@@ -112,25 +92,18 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-              <Wallet className="text-white" size={28} />
-            </div>
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md"><Wallet size={28} /></div>
           </div>
-          
           <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-white/10 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-xl">
-                <ArrowDownLeft size={18} className="text-emerald-300" />
-              </div>
+              <div className="p-2 bg-emerald-500/20 rounded-xl"><ArrowDownLeft size={18} className="text-emerald-300" /></div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Entradas</p>
                 <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalIn)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 rounded-xl">
-                <ArrowUpRight size={18} className="text-rose-300" />
-              </div>
+              <div className="p-2 bg-rose-500/20 rounded-xl"><ArrowUpRight size={18} className="text-rose-300" /></div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Saídas</p>
                 <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalOut)}</p>
@@ -139,7 +112,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Resumo Cartão */}
         <section className="bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -159,66 +131,35 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Saldo por Pessoa */}
         <section className="space-y-4">
           <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
             <Users className="text-indigo-600 dark:text-indigo-400" size={20} />
             Saldos por Pessoa
           </h3>
-          
           <div className="grid grid-cols-1 gap-3">
             {peopleWithBalance.map(([name, balance]) => (
-              <Card 
-                key={name} 
-                className="border-none shadow-sm dark:bg-slate-900 cursor-pointer active:scale-95 transition-transform"
-                onClick={() => setSelectedPerson(name)}
-              >
+              <Card key={name} className="border-none shadow-sm dark:bg-slate-900 cursor-pointer active:scale-95 transition-transform" onClick={() => setSelectedPerson(name)}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm",
-                      balance > 0 ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
-                    )}>
+                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm", balance > 0 ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600")}>
                       {name.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <p className="font-bold text-slate-800 dark:text-slate-100">{name}</p>
-                      <p className="text-[10px] text-slate-500">
-                        {balance > 0 ? "Você deve a ele(a)" : "Ele(a) te deve"}
-                      </p>
+                      <p className="text-[10px] text-slate-500">{balance > 0 ? "Você deve a ele(a)" : "Ele(a) te deve"}</p>
                     </div>
                   </div>
-                  <p className={cn(
-                    "font-bold font-mono",
-                    balance > 0 ? "text-emerald-600" : "text-rose-600"
-                  )}>
-                    R$ {formatCurrency(Math.abs(balance))}
-                  </p>
+                  <p className={cn("font-bold font-mono", balance > 0 ? "text-emerald-600" : "text-rose-600")}>R$ {formatCurrency(Math.abs(balance))}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
         </section>
 
-        <Button 
-          onClick={() => setDialogOpen(true)}
-          className="fixed bottom-20 right-6 h-16 w-16 rounded-full bg-indigo-600 shadow-2xl z-50"
-        >
-          <Plus size={32} />
-        </Button>
+        <Button onClick={() => setDialogOpen(true)} className="fixed bottom-20 right-6 h-16 w-16 rounded-full bg-indigo-600 shadow-2xl z-50"><Plus size={32} /></Button>
       </div>
-
-      <TransferDialog 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-        onSubmit={addTransfer} 
-      />
-
-      <PersonHistoryDrawer 
-        personName={selectedPerson}
-        open={!!selectedPerson}
-        onOpenChange={(open) => !open && setSelectedPerson(null)}
-      />
+      <TransferDialog open={dialogOpen} onOpenChange={setDialogOpen} onSubmit={addTransfer} />
+      <PersonHistoryDrawer personName={selectedPerson} open={!!selectedPerson} onOpenChange={(open) => !open && setSelectedPerson(null)} />
     </AppShell>
   );
 };
