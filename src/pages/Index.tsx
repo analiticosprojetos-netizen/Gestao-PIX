@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
+import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
 import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
-  const { installments } = useCards();
+  const { installments, transactions } = useCards();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   // Cálculos PIX
   const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
@@ -29,12 +31,19 @@ const Index = () => {
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   }).reduce((acc, i) => acc + i.amount, 0);
 
-  // Saldo por Pessoa (Abates)
+  // Saldo por Pessoa (Unificado: PIX + Cartão)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
     const amount = t.type === 'in' ? t.amount : -t.amount;
     acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
     return acc;
   }, {});
+
+  // Abater gastos que a pessoa fez no meu cartão (ela me deve, então diminui o que eu devo a ela)
+  transactions.forEach(tx => {
+    if (tx.recipient_name) {
+      balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - tx.total_amount;
+    }
+  });
 
   const peopleWithBalance = Object.entries(balancesByPerson)
     .filter(([_, balance]) => Math.abs(balance) > 0.01)
@@ -111,8 +120,12 @@ const Index = () => {
           </h3>
           
           <div className="grid grid-cols-1 gap-3">
-            {peopleWithBalance.slice(0, 5).map(([name, balance]) => (
-              <Card key={name} className="border-none shadow-sm dark:bg-slate-900">
+            {peopleWithBalance.map(([name, balance]) => (
+              <Card 
+                key={name} 
+                className="border-none shadow-sm dark:bg-slate-900 cursor-pointer active:scale-95 transition-transform"
+                onClick={() => setSelectedPerson(name)}
+              >
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={cn(
@@ -152,6 +165,12 @@ const Index = () => {
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
         onSubmit={addTransfer} 
+      />
+
+      <PersonHistoryDrawer 
+        personName={selectedPerson}
+        open={!!selectedPerson}
+        onOpenChange={(open) => !open && setSelectedPerson(null)}
       />
     </AppShell>
   );
