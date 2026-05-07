@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calculator, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Landmark } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -92,14 +92,14 @@ const Index = () => {
               <p className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Saldo em Conta (PIX)</p>
               <h2 className="text-4xl font-bold mt-1">R$ {formatCurrency(pixBalance.balance)}</h2>
               <div className="mt-3 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
-                <Landmark size={14} className="text-indigo-200" />
+                <Calculator size={14} className="text-indigo-200" />
                 <p className="text-[11px] font-medium text-indigo-50">
                   Líquido: <span className="font-bold">R$ {formatCurrency(netBalance)}</span>
                 </p>
               </div>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-              <Calculator size={28} />
+              <Wallet size={28} />
             </div>
           </div>
           
