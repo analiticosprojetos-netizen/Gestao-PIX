@@ -40,6 +40,13 @@ const Index = () => {
     .filter(([_, balance]) => Math.abs(balance) > 0.01)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
 
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -51,7 +58,7 @@ const Index = () => {
             <div>
               <p className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Saldo em Conta (PIX)</p>
               <h2 className="text-4xl font-bold mt-1">
-                R$ {pixBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {formatCurrency(pixBalance)}
               </h2>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
@@ -66,7 +73,7 @@ const Index = () => {
               </div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Entradas</p>
-                <p className="text-sm font-bold">R$ {totalIn.toLocaleString('pt-BR')}</p>
+                <p className="text-sm font-bold">R$ {formatCurrency(totalIn)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -75,7 +82,7 @@ const Index = () => {
               </div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Saídas</p>
-                <p className="text-sm font-bold">R$ {totalOut.toLocaleString('pt-BR')}</p>
+                <p className="text-sm font-bold">R$ {formatCurrency(totalOut)}</p>
               </div>
             </div>
           </div>
@@ -91,7 +98,7 @@ const Index = () => {
             <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia 24</Badge>
           </div>
           <div className="flex justify-between items-end">
-            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {currentInvoice.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoice)}</p>
             <p className="text-xs text-slate-500">Fechamento dia 17</p>
           </div>
         </section>
@@ -125,7 +132,7 @@ const Index = () => {
                     "font-bold font-mono",
                     balance > 0 ? "text-emerald-600" : "text-rose-600"
                   )}>
-                    R$ {Math.abs(balance).toFixed(2)}
+                    R$ {formatCurrency(Math.abs(balance))}
                   </p>
                 </CardContent>
               </Card>
