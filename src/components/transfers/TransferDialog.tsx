@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, X, DollarSign, FileText } from 'lucide-react';
+import { Camera, X, DollarSign, FileText, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/context/SettingsContext';
 
 interface TransferDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface TransferDialogProps {
 }
 
 const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) => {
+  const { settings } = useSettings();
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -76,7 +78,6 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
         </DrawerHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-10 overflow-y-auto max-h-[85vh]">
-          {/* Seletor de Tipo Estilizado */}
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -121,22 +122,26 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
             </div>
 
             <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
+              <Select value={formData.friend_name} onValueChange={(v) => setFormData({...formData, friend_name: v})}>
+                <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none">
+                  <SelectValue placeholder="Selecione uma pessoa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {settings.contacts.map(contact => (
+                    <SelectItem key={contact} value={contact}>{contact}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
               <Input 
                 placeholder="Ex: Repasse Transportadora" 
                 className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Pessoa / Contato</Label>
-              <Input 
-                placeholder="Nome da pessoa (ex: Lucio)" 
-                className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
-                value={formData.friend_name}
-                onChange={(e) => setFormData({...formData, friend_name: e.target.value})}
               />
             </div>
 

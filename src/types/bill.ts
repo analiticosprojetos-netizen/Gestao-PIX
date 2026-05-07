@@ -9,7 +9,8 @@ export interface Bill {
 }
 
 export interface AppSettings {
-  theme: 'light' | 'dark'; // Adicionado tema
+  theme: 'light' | 'dark';
+  contacts: string[]; // Nova lista de contatos pré-definidos
   alerts: {
     sms: boolean;
     whatsapp: boolean;

@@ -13,6 +13,7 @@ interface SettingsContextType {
 
 const defaultSettings: AppSettings = {
   theme: 'light',
+  contacts: ['Lúcio', 'Lider Refrigeração', 'Weverton'], // Contatos iniciais
   alerts: {
     sms: false,
     whatsapp: true,
@@ -38,7 +39,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
 
-  // Aplica a classe dark no HTML quando o tema muda
   useEffect(() => {
     const root = window.document.documentElement;
     if (settings.theme === 'dark') {
@@ -59,7 +59,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         if (error && error.code !== 'PGRST116') throw error;
 
         if (data) {
-          setSettings(data.config);
+          // Mescla com os padrões para garantir que novos campos existam
+          setSettings({ ...defaultSettings, ...data.config });
         }
       } catch (err) {
         console.error("Erro ao buscar configurações:", err);

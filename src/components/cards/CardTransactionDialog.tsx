@@ -5,6 +5,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSettings } from '@/context/SettingsContext';
 
 interface CardTransactionDialogProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface CardTransactionDialogProps {
 }
 
 const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransactionDialogProps) => {
+  const { settings } = useSettings();
   const [formData, setFormData] = useState({
     description: '',
     total_amount: '',
@@ -74,22 +77,26 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
             </div>
 
             <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Quem usou? (Pessoa)</Label>
+              <Select value={formData.recipient_name} onValueChange={(v) => setFormData({...formData, recipient_name: v})}>
+                <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none">
+                  <SelectValue placeholder="Selecione uma pessoa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {settings.contacts.map(contact => (
+                    <SelectItem key={contact} value={contact}>{contact}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</Label>
               <Input 
                 placeholder="Ex: Notebook, Celular..." 
                 className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Quem usou? (Pessoa)</Label>
-              <Input 
-                placeholder="Ex: Lucio, Eu..." 
-                className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
-                value={formData.recipient_name}
-                onChange={(e) => setFormData({...formData, recipient_name: e.target.value})}
               />
             </div>
 
