@@ -31,14 +31,15 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       amount: t.amount,
       type: t.type === 'in' ? 'credit' : 'debit', // In = Eu devo (+), Out = Eu paguei (-)
       icon: t.type === 'in' ? <ArrowDownLeft className="text-emerald-500" /> : <ArrowUpRight className="text-rose-500" />,
-      label: t.type === 'in' ? 'Recebido' : 'Pago (PIX)'
+      label: t.type === 'in' ? 'Recebido' : 'Pago (PIX)',
+      status: 'completed'
     }));
 
-  // 2. Histórico de Parcelas de Cartão PAGAS (conforme solicitado)
+  // 2. Histórico de Parcelas de Cartão (Pagas e Pendentes)
   const personInstallments = installments
     .filter(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
-      return tx?.recipient_name === personName && inst.status === 'paid';
+      return tx?.recipient_name === personName;
     })
     .map(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id)!;
@@ -47,16 +48,23 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         date: new Date(inst.due_date),
         description: `Parcela ${inst.number}/${tx.installments_count}: ${tx.description}`,
         amount: inst.amount,
-        type: 'debit', // Parcela paga = Abate da dívida
-        icon: <CreditCard className="text-indigo-500" />,
-        label: 'Pago (Cartão)'
+        type: 'debit', // Parcela de cartão que a pessoa usou = Ela me deve (-)
+        icon: <CreditCard className={cn(inst.status === 'paid' ? "text-slate-400" : "text-indigo-500")} />,
+        label: inst.status === 'paid' ? 'Pago (Cartão)' : 'Dívida (Cartão)',
+        status: inst.status
       };
     });
 
+  // Junta tudo e ordena por data
   const history = [...personTransfers, ...personInstallments].sort((a, b) => b.date.getTime() - a.date.getTime());
 
+  // Cálculo do saldo (PIX Recebido - PIX Enviado - Parcelas Pendentes)
+  // Nota: Parcelas pagas não abatem mais o saldo pois assume-se que já foram acertadas
   const totalBalance = history.reduce((acc, item) => {
-    return item.type === 'credit' ? acc + item.amount : acc - item.amount;
+    if (item.status === 'pending' || item.label === 'Recebido' || item.label === 'Pago (PIX)') {
+      return item.type === 'credit' ? acc + item.amount : acc - item.amount;
+    }
+    return acc;
   }, 0);
 
   const formatCurrency = (value: number) => {
@@ -88,13 +96,26 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
 
         <div className="p-6 overflow-y-auto space-y-4">
           {history.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div 
+              key={item.id} 
+              className={cn(
+                "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                item.status === 'pending' && item.type === 'debit' 
+                  ? "bg-rose-50/50 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900/30" 
+                  : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
+              )}
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
                   {item.icon}
                 </div>
                 <div>
-                  <p className="font-bold text-sm leading-tight">{item.description}</p>
+                  <p className={cn(
+                    "font-bold text-sm leading-tight",
+                    item.status === 'paid' && item.type === 'debit' && "text-slate-400 line-through"
+                  )}>
+                    {item.description}
+                  </p>
                   <p className="text-[10px] text-slate-500">
                     {item.label} • {format(item.date, "dd/MM/yyyy", { locale: ptBR })}
                   </p>
@@ -102,7 +123,8 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
               </div>
               <p className={cn(
                 "font-bold font-mono text-sm",
-                item.type === 'credit' ? "text-emerald-600" : "text-rose-600"
+                item.type === 'credit' ? "text-emerald-600" : "text-rose-600",
+                item.status === 'paid' && item.type === 'debit' && "text-slate-400"
               )}>
                 {item.type === 'credit' ? '+' : '-'} R$ {formatCurrency(item.amount)}
               </p>
