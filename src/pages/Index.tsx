@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
+import { format, addMonths, isAfter, startOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
@@ -21,62 +23,73 @@ const Index = () => {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   // 1. Cálculos PIX (Dinheiro em conta)
-  const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-  const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
-  const pixBalance = totalIn - totalOut;
+  const pixBalance = useMemo(() => {
+    const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+    return { totalIn, totalOut, balance: totalIn - totalOut };
+  }, [transfers]);
 
-  // 2. Cálculo da Fatura do Mês Atual (Simplificado)
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
+  // 2. Cálculo da Fatura Ativa (A próxima que tiver parcelas pendentes)
+  const activeInvoice = useMemo(() => {
+    if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
 
-  // Filtra todas as parcelas que vencem no mês atual
-  const currentInvoiceInstallments = installments.filter(i => {
-    const dueDate = new Date(i.due_date);
-    return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
-  });
+    // Encontra a data de vencimento mais próxima que ainda tem algo pendente
+    const pendingInstallments = installments
+      .filter(i => i.status === 'pending')
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
 
-  const currentInvoiceTotal = currentInvoiceInstallments.reduce((acc, i) => acc + i.amount, 0);
-  const currentInvoicePending = currentInvoiceInstallments
-    .filter(i => i.status === 'pending')
-    .reduce((acc, i) => acc + i.amount, 0);
+    if (pendingInstallments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
 
-  // 3. Saldo Líquido (O que você tem no PIX menos o que ainda tem que pagar de fatura este mês)
-  const netBalance = pixBalance - currentInvoicePending;
+    const firstPendingDate = new Date(pendingInstallments[0].due_date);
+    const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
+    
+    // Filtra todas as parcelas desse mesmo mês/ano
+    const monthInstallments = installments.filter(i => {
+      const d = new Date(i.due_date);
+      return d.getMonth() === firstPendingDate.getMonth() && d.getFullYear() === firstPendingDate.getFullYear();
+    });
 
-  // 4. Saldo por Pessoa (Unificado)
-  const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
-    // Se eu recebi (in), eu devo (+). Se eu enviei (out), ele me deve (-).
-    const amount = t.type === 'in' ? t.amount : -t.amount;
-    acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
-    return acc;
-  }, {});
+    const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
+    const pending = monthInstallments.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
+    const dueDate = firstPendingDate.getDate();
 
-  // Adiciona as dívidas de cartão ao saldo da pessoa
-  // Se a pessoa usou meu cartão, ela me deve (saldo negativo)
-  installments.forEach(inst => {
-    const tx = transactions.find(t => t.id === inst.transaction_id);
-    if (tx && tx.recipient_name) {
-      // Se a parcela ainda não foi "paga" (ou seja, a pessoa ainda não me acertou esse valor)
-      // ela conta como algo que a pessoa me deve (-)
+    return { total, pending, monthName, dueDate };
+  }, [installments, settings.cardClosingDay]);
+
+  // 3. Saldo Líquido (PIX - O que falta pagar da fatura ativa)
+  const netBalance = pixBalance.balance - activeInvoice.pending;
+
+  // 4. Saldo por Pessoa (Unificado: PIX + Cartão)
+  const peopleWithBalance = useMemo(() => {
+    const balances: Record<string, number> = {};
+
+    // Inicializa contatos
+    settings.contacts.forEach(name => { balances[name] = 0; });
+
+    // Soma PIX (In = Eu devo (+), Out = Ele me deve (-))
+    transfers.forEach(t => {
+      const amount = t.type === 'in' ? t.amount : -t.amount;
+      balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
+    });
+
+    // Subtrai Cartão (Se a pessoa usou meu cartão e não me pagou, ela me deve (-))
+    installments.forEach(inst => {
       if (inst.status === 'pending') {
-        balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
+        const tx = transactions.find(t => t.id === inst.transaction_id);
+        if (tx && tx.recipient_name) {
+          balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
+        }
       }
-    }
-  });
+    });
 
-  const peopleWithBalance = Object.entries(balancesByPerson)
-    .filter(([_, balance]) => Math.abs(balance) > 0.01)
-    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    return Object.entries(balances)
+      .filter(([_, balance]) => Math.abs(balance) > 0.01)
+      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  }, [transfers, installments, transactions, settings.contacts]);
 
   const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    });
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
-
-  const dueDateDisplay = settings.cardClosingDay + 7;
 
   return (
     <AppShell>
@@ -89,10 +102,9 @@ const Index = () => {
             <div>
               <p className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Saldo em Conta (PIX)</p>
               <h2 className="text-4xl font-bold mt-1">
-                R$ {formatCurrency(pixBalance)}
+                R$ {formatCurrency(pixBalance.balance)}
               </h2>
               
-              {/* Prévia do Saldo Líquido */}
               <div className="mt-3 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
                 <Calculator size={14} className="text-indigo-200" />
                 <p className="text-[11px] font-medium text-indigo-50">
@@ -112,7 +124,7 @@ const Index = () => {
               </div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Entradas</p>
-                <p className="text-sm font-bold">R$ {formatCurrency(totalIn)}</p>
+                <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalIn)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -121,7 +133,7 @@ const Index = () => {
               </div>
               <div>
                 <p className="text-[10px] text-indigo-100 uppercase font-bold">Saídas</p>
-                <p className="text-sm font-bold">R$ {formatCurrency(totalOut)}</p>
+                <p className="text-sm font-bold">R$ {formatCurrency(pixBalance.totalOut)}</p>
               </div>
             </div>
           </div>
@@ -132,15 +144,15 @@ const Index = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <CreditCard className="text-indigo-600" size={20} />
-              <h3 className="font-bold dark:text-white">Fatura de {new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(today)}</h3>
+              <h3 className="font-bold dark:text-white capitalize">Fatura de {activeInvoice.monthName}</h3>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDateDisplay > 31 ? dueDateDisplay - 31 : dueDateDisplay}</Badge>
+            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {activeInvoice.dueDate}</Badge>
           </div>
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoiceTotal)}</p>
-              {currentInvoicePending > 0 && (
-                <p className="text-[10px] text-amber-600 font-bold mt-1">Pendente: R$ {formatCurrency(currentInvoicePending)}</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(activeInvoice.total)}</p>
+              {activeInvoice.pending > 0 && (
+                <p className="text-[10px] text-amber-600 font-bold mt-1">Pendente: R$ {formatCurrency(activeInvoice.pending)}</p>
               )}
             </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
@@ -185,9 +197,6 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
-            {peopleWithBalance.length === 0 && (
-              <div className="text-center py-8 text-slate-400 italic text-sm">Nenhum saldo pendente</div>
-            )}
           </div>
         </section>
 
