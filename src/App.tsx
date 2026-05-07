@@ -4,9 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { BillProvider } from "./context/BillContext";
+import { TransferProvider } from "./context/TransferContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import Index from "./pages/Index";
 import Bills from "./pages/Bills";
+import Transfers from "./pages/Transfers";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -17,16 +19,19 @@ const App = () => (
     <TooltipProvider>
       <SettingsProvider>
         <BillProvider>
-          <Toaster />
-          <Sonner position="top-center" />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/bills" element={<Bills />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <TransferProvider>
+            <Toaster />
+            <Sonner position="top-center" />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/bills" element={<Bills />} />
+                <Route path="/pix" element={<Transfers />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TransferProvider>
         </BillProvider>
       </SettingsProvider>
     </TooltipProvider>
