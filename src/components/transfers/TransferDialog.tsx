@@ -20,7 +20,8 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
   const { settings } = useSettings();
   const [formData, setFormData] = useState({
     description: '',
-    amount: '',
+    amount: '', // Valor formatado para exibição
+    rawAmount: 0, // Valor numérico real
     date: new Date().toISOString().split('T')[0],
     friend_name: '',
     type: 'in' as 'in' | 'out',
@@ -29,13 +30,29 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    const numericValue = value ? parseInt(value) / 100 : 0;
+    
+    const formatted = numericValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    setFormData({
+      ...formData,
+      amount: formatted,
+      rawAmount: numericValue
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.description || !formData.amount || !formData.friend_name) return;
+    if (!formData.description || formData.rawAmount <= 0 || !formData.friend_name) return;
 
     onSubmit({
       ...formData,
-      amount: parseFloat(formData.amount),
+      amount: formData.rawAmount,
       date: new Date(formData.date + 'T12:00:00')
     }, selectedFile || undefined);
     
@@ -47,6 +64,7 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
     setFormData({
       description: '',
       amount: '',
+      rawAmount: 0,
       date: new Date().toISOString().split('T')[0],
       friend_name: '',
       type: 'in',
@@ -111,13 +129,12 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
               <div className="relative mt-1">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">R$</span>
                 <Input 
-                  type="number" 
-                  step="0.01"
-                  inputMode="decimal"
+                  type="text" 
+                  inputMode="numeric"
                   placeholder="0,00"
                   className="h-14 pl-12 text-xl font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-indigo-500"
                   value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  onChange={handleAmountChange}
                 />
               </div>
             </div>
