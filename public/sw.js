@@ -1,15 +1,15 @@
 // Este arquivo roda em segundo plano
 self.addEventListener('push', function(event) {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Alerta de Boleto';
+  const title = data.title || 'Gestão PIX';
   const options = {
-    body: data.body || 'Você tem um boleto vencendo hoje!',
-    icon: '/placeholder.svg',
-    badge: '/placeholder.svg',
+    body: data.body || 'Você tem uma movimentação pendente!',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
     vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40],
-    tag: 'boleto-alerta',
+    tag: 'pix-alerta',
     renotify: true,
-    requireInteraction: true // A notificação fica na tela até você clicar
+    requireInteraction: true 
   };
 
   event.waitUntil(
@@ -24,6 +24,11 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// Forçar ativação imediata
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
+// Forçar ativação imediata e limpeza de cache antigo
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
