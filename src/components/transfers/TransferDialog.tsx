@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, X, DollarSign, FileText, User } from 'lucide-react';
+import { Camera, X, DollarSign, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -113,6 +113,7 @@ const TransferDialog = ({ open, onOpenChange, onSubmit }: TransferDialogProps) =
                 <Input 
                   type="number" 
                   step="0.01"
+                  inputMode="decimal"
                   placeholder="0,00"
                   className="h-14 pl-12 text-xl font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border-none focus-visible:ring-indigo-500"
                   value={formData.amount}

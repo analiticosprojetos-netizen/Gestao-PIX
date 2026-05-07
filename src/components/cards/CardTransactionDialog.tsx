@@ -68,6 +68,7 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
                 <Input 
                   type="number" 
                   step="0.01"
+                  inputMode="decimal"
                   placeholder="0,00"
                   className="h-14 pl-12 text-xl font-bold rounded-2xl bg-slate-50 dark:bg-slate-800 border-none"
                   value={formData.total_amount}
