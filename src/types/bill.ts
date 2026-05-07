@@ -10,7 +10,8 @@ export interface Bill {
 
 export interface AppSettings {
   theme: 'light' | 'dark';
-  contacts: string[]; // Nova lista de contatos pré-definidos
+  contacts: string[];
+  cardClosingDay: number; // Novo campo para o dia de fechamento
   alerts: {
     sms: boolean;
     whatsapp: boolean;

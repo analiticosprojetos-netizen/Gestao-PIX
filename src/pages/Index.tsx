@@ -10,11 +10,13 @@ import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
 import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
+import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
   const { installments, transactions } = useCards();
+  const { settings } = useSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
@@ -33,18 +35,15 @@ const Index = () => {
 
   // Saldo por Pessoa (Unificado)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
-    // In = Eu devo (+), Out = Eu paguei (-)
     const amount = t.type === 'in' ? t.amount : -t.amount;
     acc[t.friend_name] = (acc[t.friend_name] || 0) + amount;
     return acc;
   }, {});
 
-  // Abater apenas as parcelas de cartão que já foram PAGAS (conforme solicitado)
   installments.forEach(inst => {
     if (inst.status === 'paid') {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
-        // Se eu paguei a parcela do que ele usou, eu "paguei" parte da minha dívida com ele
         balancesByPerson[tx.recipient_name] = (balancesByPerson[tx.recipient_name] || 0) - inst.amount;
       }
     }
@@ -60,6 +59,8 @@ const Index = () => {
       maximumFractionDigits: 2 
     });
   };
+
+  const dueDate = settings.cardClosingDay + 7;
 
   return (
     <AppShell>
@@ -109,11 +110,11 @@ const Index = () => {
               <CreditCard className="text-indigo-600" size={20} />
               <h3 className="font-bold dark:text-white">Fatura Atual</h3>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia 24</Badge>
+            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {dueDate > 31 ? dueDate - 31 : dueDate}</Badge>
           </div>
           <div className="flex justify-between items-end">
             <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(currentInvoice)}</p>
-            <p className="text-xs text-slate-500">Fechamento dia 17</p>
+            <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
           </div>
         </section>
 

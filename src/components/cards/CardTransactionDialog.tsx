@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,13 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
     installments_count: '1',
     recipient_name: '',
     purchase_date: new Date(),
-    closing_day: '17'
+    closing_day: settings.cardClosingDay.toString()
   });
+
+  // Atualiza o dia de fechamento se ele mudar nas configurações
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, closing_day: settings.cardClosingDay.toString() }));
+  }, [settings.cardClosingDay]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -73,7 +78,7 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
       installments_count: '1',
       recipient_name: '',
       purchase_date: new Date(),
-      closing_day: '17'
+      closing_day: settings.cardClosingDay.toString()
     });
   };
 

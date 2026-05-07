@@ -7,24 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Smartphone, Volume2, Vibrate, PlayCircle, ShieldCheck, BellRing, Moon, Users, Plus, Trash2 } from 'lucide-react';
+import { Smartphone, Volume2, Vibrate, PlayCircle, ShieldCheck, BellRing, Moon, Users, Plus, Trash2, CreditCard } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Settings = () => {
   const { settings, updateSettings, toggleTheme } = useSettings();
-  const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
   const [newContact, setNewContact] = useState('');
-
-  const requestPermission = async () => {
-    if (!("Notification" in window)) {
-      showError("Navegador sem suporte a notificações.");
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    setPermissionStatus(permission);
-    if (permission === "granted") showSuccess("Notificações liberadas!");
-  };
 
   const addContact = () => {
     if (!newContact.trim()) return;
@@ -52,6 +41,13 @@ const Settings = () => {
       ...settings,
       alerts: { ...settings.alerts, [key]: !settings.alerts[key] }
     });
+  };
+
+  const handleClosingDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    if (val >= 1 && val <= 31) {
+      updateSettings({ ...settings, cardClosingDay: val });
+    }
   };
 
   return (
@@ -87,6 +83,30 @@ const Settings = () => {
                   </button>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Configurações de Cartão */}
+        <Card className="border-none shadow-sm dark:bg-slate-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <CreditCard className="text-indigo-600" size={20} />
+              Cartão de Crédito
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dia de Fechamento da Fatura</Label>
+              <Input 
+                type="number"
+                min="1"
+                max="31"
+                value={settings.cardClosingDay}
+                onChange={handleClosingDayChange}
+                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border-none"
+              />
+              <p className="text-[10px] text-slate-500">O vencimento será calculado como 7 dias após o fechamento.</p>
             </div>
           </CardContent>
         </Card>

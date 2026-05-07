@@ -13,7 +13,8 @@ interface SettingsContextType {
 
 const defaultSettings: AppSettings = {
   theme: 'light',
-  contacts: ['Lúcio', 'Lider Refrigeração', 'Weverton'], // Contatos iniciais
+  contacts: ['Lúcio', 'Lider Refrigeração', 'Weverton'],
+  cardClosingDay: 17, // Valor padrão
   alerts: {
     sms: false,
     whatsapp: true,
@@ -59,7 +60,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         if (error && error.code !== 'PGRST116') throw error;
 
         if (data) {
-          // Mescla com os padrões para garantir que novos campos existam
           setSettings({ ...defaultSettings, ...data.config });
         }
       } catch (err) {
