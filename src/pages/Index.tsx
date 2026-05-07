@@ -4,21 +4,30 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, ChevronRight } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import { useTransfers } from '@/context/TransferContext';
+import { useCards } from '@/context/CardContext';
 import { cn } from "@/lib/utils";
-import { Link } from 'react-router-dom';
 
 const Index = () => {
   const { transfers, addTransfer } = useTransfers();
+  const { installments } = useCards();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Cálculos Gerais
+  // Cálculos PIX
   const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
   const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
   const pixBalance = totalIn - totalOut;
+
+  // Cálculos Cartão (Fatura Atual)
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const currentInvoice = installments.filter(i => {
+    const date = new Date(i.due_date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  }).reduce((acc, i) => acc + i.amount, 0);
 
   // Saldo por Pessoa (Abates)
   const balancesByPerson = transfers.reduce((acc: Record<string, number>, t) => {
@@ -72,21 +81,31 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Saldo por Pessoa (Controle de Abates) */}
-        <section className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
-              <Users className="text-indigo-600 dark:text-indigo-400" size={20} />
-              Saldos por Pessoa
-            </h3>
-            <Badge variant="secondary" className="rounded-lg">
-              {peopleWithBalance.length} contatos
-            </Badge>
+        {/* Resumo Cartão */}
+        <section className="bg-white dark:bg-slate-900 rounded-[32px] p-5 shadow-sm border dark:border-slate-800">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="text-indigo-600" size={20} />
+              <h3 className="font-bold dark:text-white">Fatura Atual</h3>
+            </div>
+            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia 24</Badge>
           </div>
+          <div className="flex justify-between items-end">
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {currentInvoice.toFixed(2)}</p>
+            <p className="text-xs text-slate-500">Fechamento dia 17</p>
+          </div>
+        </section>
+
+        {/* Saldo por Pessoa */}
+        <section className="space-y-4">
+          <h3 className="text-lg font-bold flex items-center gap-2 dark:text-slate-100">
+            <Users className="text-indigo-600 dark:text-indigo-400" size={20} />
+            Saldos por Pessoa
+          </h3>
           
           <div className="grid grid-cols-1 gap-3">
             {peopleWithBalance.slice(0, 5).map(([name, balance]) => (
-              <Card key={name} className="border-none shadow-sm dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+              <Card key={name} className="border-none shadow-sm dark:bg-slate-900">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={cn(
@@ -102,32 +121,23 @@ const Index = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-bold font-mono",
-                      balance > 0 ? "text-emerald-600" : "text-rose-600"
-                    )}>
-                      R$ {Math.abs(balance).toFixed(2)}
-                    </p>
-                  </div>
+                  <p className={cn(
+                    "font-bold font-mono",
+                    balance > 0 ? "text-emerald-600" : "text-rose-600"
+                  )}>
+                    R$ {Math.abs(balance).toFixed(2)}
+                  </p>
                 </CardContent>
               </Card>
             ))}
-            
-            {peopleWithBalance.length === 0 && (
-              <div className="text-center py-8 bg-slate-100/50 dark:bg-slate-900/50 rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-800">
-                <p className="text-slate-400 text-sm italic">Nenhum saldo pendente</p>
-              </div>
-            )}
           </div>
         </section>
 
-        {/* Botão Flutuante (+) */}
         <Button 
           onClick={() => setDialogOpen(true)}
-          className="fixed bottom-20 right-6 h-16 w-16 rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-300 dark:shadow-none z-50 flex items-center justify-center p-0"
+          className="fixed bottom-20 right-6 h-16 w-16 rounded-full bg-indigo-600 shadow-2xl z-50"
         >
-          <Plus size={32} className="text-white" />
+          <Plus size={32} />
         </Button>
       </div>
 
