@@ -21,7 +21,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
 
   if (!personName) return null;
 
-  // 1. Histórico de PIX (usando o status real)
+  // 1. Histórico de PIX
   const personTransfers = transfers
     .filter(t => t.friend_name === personName)
     .map(t => ({
@@ -30,9 +30,9 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       description: t.description,
       amount: t.amount,
       type: t.type === 'in' ? 'credit' : 'debit',
-      icon: t.type === 'in' ? <ArrowDownLeft className={cn(t.status === 'completed' ? "text-slate-400" : "text-emerald-500")} /> : <ArrowUpRight className={cn(t.status === 'completed' ? "text-slate-400" : "text-rose-500")} />,
+      icon: t.type === 'in' ? <ArrowDownLeft className="text-emerald-500" /> : <ArrowUpRight className={cn(t.status === 'completed' ? "text-slate-400" : "text-rose-500")} />,
       label: t.type === 'in' ? 'Recebido' : 'Pago (PIX)',
-      status: t.status // 'completed' ou 'pending'
+      status: t.status
     }));
 
   // 2. Histórico de Parcelas de Cartão
@@ -51,7 +51,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         type: 'debit',
         icon: <CreditCard className={cn(inst.status === 'paid' ? "text-slate-400" : "text-indigo-500")} />,
         label: inst.status === 'paid' ? 'Pago (Cartão)' : 'Dívida (Cartão)',
-        status: inst.status // 'paid' ou 'pending'
+        status: inst.status
       };
     });
 
@@ -81,14 +81,15 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         </DrawerHeader>
         <div className="p-6 overflow-y-auto space-y-4">
           {history.map((item) => {
-            const isSettled = item.status === 'completed' || item.status === 'paid';
+            // Só fica cinza se for DÉBITO e estiver PAGO/CONCLUÍDO
+            const isSettledDebit = item.type === 'debit' && (item.status === 'completed' || item.status === 'paid');
             
             return (
               <div 
                 key={item.id} 
                 className={cn(
                   "flex items-center justify-between p-4 rounded-2xl border transition-all", 
-                  isSettled 
+                  isSettledDebit 
                     ? "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 opacity-70" 
                     : item.type === 'debit' 
                       ? "bg-rose-50/30 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900/30" 
@@ -100,14 +101,14 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
                   <div>
                     <p className={cn(
                       "font-bold text-sm leading-tight", 
-                      isSettled ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"
+                      isSettledDebit ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"
                     )}>
                       {item.description}
                     </p>
                     <div className="flex items-center gap-1 mt-0.5">
                       <p className="text-[10px] text-slate-500">{item.label} • {format(item.date, "dd/MM/yyyy", { locale: ptBR })}</p>
-                      {isSettled ? 
-                        <CheckCircle2 size={10} className="text-slate-400" /> : 
+                      {(item.status === 'completed' || item.status === 'paid') ? 
+                        <CheckCircle2 size={10} className={cn(isSettledDebit ? "text-slate-400" : "text-emerald-500")} /> : 
                         <Clock size={10} className="text-amber-500" />
                       }
                     </div>
@@ -115,7 +116,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
                 </div>
                 <p className={cn(
                   "font-bold font-mono text-sm", 
-                  isSettled 
+                  isSettledDebit 
                     ? "text-slate-400" 
                     : item.type === 'credit' ? "text-emerald-600" : "text-rose-600"
                 )}>
