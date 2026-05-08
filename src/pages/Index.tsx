@@ -34,18 +34,35 @@ const Index = () => {
   // 2. Cálculo da Fatura Ativa
   const activeInvoice = useMemo(() => {
     if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
+    
+    // Pega a primeira parcela pendente para saber qual fatura focar
     const pendingInstallments = installments
       .filter(i => i.status === 'pending')
       .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
-    if (pendingInstallments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
+    
+    if (pendingInstallments.length === 0) {
+      // Se não houver nada pendente, mostra o total do mês atual (mesmo que pago)
+      const now = new Date();
+      const monthInstallments = installments.filter(i => {
+        const d = new Date(i.due_date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
+      return { total, pending: 0, monthName: format(now, 'MMMM', { locale: ptBR }), dueDate: settings.cardClosingDay + 7 };
+    }
+
     const firstPendingDate = new Date(pendingInstallments[0].due_date);
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
+    
+    // Filtra todas as parcelas daquele mês específico
     const monthInstallments = installments.filter(i => {
       const d = new Date(i.due_date);
       return d.getMonth() === firstPendingDate.getMonth() && d.getFullYear() === firstPendingDate.getFullYear();
     });
+
     const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
     const pending = monthInstallments.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
+    
     return { total, pending, monthName, dueDate: firstPendingDate.getDate() };
   }, [installments, settings.cardClosingDay]);
 
@@ -141,14 +158,21 @@ const Index = () => {
               <CreditCard className="text-indigo-600" size={20} />
               <h3 className="font-bold dark:text-white capitalize">Fatura de {activeInvoice.monthName}</h3>
             </div>
-            <Badge className="bg-indigo-50 text-indigo-600 border-none">Vence dia {activeInvoice.dueDate}</Badge>
+            <Badge className={cn(
+              "border-none",
+              activeInvoice.pending === 0 ? "bg-emerald-50 text-emerald-600" : "bg-indigo-50 text-indigo-600"
+            )}>
+              {activeInvoice.pending === 0 ? "Paga" : `Vence dia ${activeInvoice.dueDate}`}
+            </Badge>
           </div>
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ {formatCurrency(activeInvoice.total)}</p>
-              {activeInvoice.pending > 0 && (
-                <p className="text-[10px] text-amber-600 font-bold mt-1">Pendente: R$ {formatCurrency(activeInvoice.pending)}</p>
-              )}
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                R$ {formatCurrency(activeInvoice.pending)}
+              </p>
+              <p className="text-[10px] text-slate-500 font-medium mt-1">
+                Total da Fatura: R$ {formatCurrency(activeInvoice.total)}
+              </p>
             </div>
             <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
           </div>
