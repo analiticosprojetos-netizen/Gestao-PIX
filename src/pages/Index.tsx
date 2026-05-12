@@ -24,10 +24,11 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // 1. Cálculos PIX (Dinheiro em conta)
+  // 1. Cálculos PIX (Dinheiro em conta - APENAS CONCLUÍDOS)
   const pixBalance = useMemo(() => {
-    const totalIn = transfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-    const totalOut = transfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+    const completedTransfers = transfers.filter(t => t.status === 'completed');
+    const totalIn = completedTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = completedTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
     return { totalIn, totalOut, balance: totalIn - totalOut };
   }, [transfers]);
 
@@ -35,13 +36,11 @@ const Index = () => {
   const activeInvoice = useMemo(() => {
     if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
     
-    // Pega a primeira parcela pendente para saber qual fatura focar
     const pendingInstallments = installments
       .filter(i => i.status === 'pending')
       .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
     
     if (pendingInstallments.length === 0) {
-      // Se não houver nada pendente, mostra o total do mês atual (mesmo que pago)
       const now = new Date();
       const monthInstallments = installments.filter(i => {
         const d = new Date(i.due_date);
@@ -54,7 +53,6 @@ const Index = () => {
     const firstPendingDate = new Date(pendingInstallments[0].due_date);
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
     
-    // Filtra todas as parcelas daquele mês específico
     const monthInstallments = installments.filter(i => {
       const d = new Date(i.due_date);
       return d.getMonth() === firstPendingDate.getMonth() && d.getFullYear() === firstPendingDate.getFullYear();
