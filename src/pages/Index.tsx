@@ -8,7 +8,7 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculato
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
-import { useTransfers } from '@/context/TransferContext';
+import { useTransfers } from '@/context{`t/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
@@ -29,8 +29,18 @@ const Index = () => {
     const completedTransfers = transfers.filter(t => t.status === 'completed');
     const totalIn = completedTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
     const totalOut = completedTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
-    return { totalIn, totalOut, balance: totalIn - totalOut };
-  }, [transfers]);
+    
+    // Subtrai também o que já foi pago no cartão (pois saiu do caixa)
+    const totalPaidCards = installments
+      .filter(i => i.status === 'paid')
+      .reduce((acc, i) => acc + i.amount, 0);
+
+    return { 
+      totalIn, 
+      totalOut: totalOut + totalPaidCards, 
+      balance: totalIn - totalOut - totalPaidCards 
+    };
+  }, [transfers, installments]);
 
   // 2. Cálculo da Fatura Ativa
   const activeInvoice = useMemo(() => {
@@ -160,7 +170,7 @@ const Index = () => {
               "border-none",
               activeInvoice.pending === 0 ? "bg-emerald-50 text-emerald-600" : "bg-indigo-50 text-indigo-600"
             )}>
-              {activeInvoice.pending === 0 ? "Paga" : `Vence dia ${activeInvoice.dueDate}`}
+              {activeInvoice.pending === 0 ? "Paga" : \`Vence dia \${activeInvoice.dueDate}\`}
             </Badge>
           </div>
           <div className="flex justify-between items-end">
@@ -210,3 +220,4 @@ const Index = () => {
 };
 
 export default Index;
+`}
