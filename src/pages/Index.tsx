@@ -8,7 +8,7 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculato
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
-import { useTransfers } from '@/context{`t/TransferContext';
+import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
@@ -170,7 +170,7 @@ const Index = () => {
               "border-none",
               activeInvoice.pending === 0 ? "bg-emerald-50 text-emerald-600" : "bg-indigo-50 text-indigo-600"
             )}>
-              {activeInvoice.pending === 0 ? "Paga" : \`Vence dia \${activeInvoice.dueDate}\`}
+              {activeInvoice.pending === 0 ? "Paga" : `Vence dia ${activeInvoice.dueDate}`}
             </Badge>
           </div>
           <div className="flex justify-between items-end">
@@ -220,4 +220,3 @@ const Index = () => {
 };
 
 export default Index;
-`}
