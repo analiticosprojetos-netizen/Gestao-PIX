@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2, AlertCircle, Layout, Cpu } from 'lucide-react';
+import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2, AlertCircle, Layout, Cpu, Pencil } from 'lucide-react';
 import { useLider } from '@/context/LiderContext';
 import LiderCalculator from '@/components/lider/LiderCalculator';
 import LiderDialog from '@/components/lider/LiderDialog';
@@ -17,6 +17,7 @@ const Lider = () => {
   const { expenses, payments, updateExpense, updatePayment, deleteExpense, addExpense, addPayment } = useLider();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'expenses' | 'system'>('expenses');
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -47,6 +48,32 @@ const Lider = () => {
     }
   };
 
+  const handleEdit = (item: any) => {
+    setEditingItem(item);
+    setDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingItem(null);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = (data: any) => {
+    if (activeTab === 'expenses') {
+      if (data.id) {
+        updateExpense(data.id, data);
+      } else {
+        addExpense(data);
+      }
+    } else {
+      if (data.id) {
+        updatePayment(data.id, data);
+      } else {
+        addPayment(data);
+      }
+    }
+  };
+
   const ExpenseItem = ({ item }: { item: any }) => {
     const isOverdue = item.status === 'pending' && isBefore(startOfDay(item.due_date), startOfDay(new Date()));
 
@@ -56,7 +83,7 @@ const Lider = () => {
         isOverdue && "ring-1 ring-rose-500/50 bg-rose-50/30 dark:bg-rose-950/10"
       )}>
         <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" onClick={() => handleEdit(item)}>
             <div className={cn("p-2 rounded-xl", getCategoryColor(item.type))}>
               {getIcon(item.type)}
             </div>
@@ -83,9 +110,14 @@ const Lider = () => {
                 {item.status === 'paid' ? 'Pago' : 'Em Aberto'}
               </button>
             </div>
-            <button onClick={() => { if(confirm("Remover este registro?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500 transition-colors">
-              <Trash2 size={16} />
-            </button>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => handleEdit(item)} className="text-slate-300 hover:text-indigo-500 transition-colors">
+                <Pencil size={16} />
+              </button>
+              <button onClick={() => { if(confirm("Remover este registro?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -106,7 +138,7 @@ const Lider = () => {
             </div>
           </div>
           <Button 
-            onClick={() => setDialogOpen(true)} 
+            onClick={handleAdd} 
             className="bg-indigo-600 rounded-xl h-12 w-12 p-0 shadow-lg shadow-indigo-200 dark:shadow-none"
           >
             <Plus size={24} />
@@ -145,7 +177,7 @@ const Lider = () => {
             {payments.map(pay => (
               <Card key={pay.id} className="border-none shadow-sm dark:bg-slate-900">
                 <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3" onClick={() => handleEdit(pay)}>
                     <div className={cn("p-2 rounded-xl", pay.status === 'paid' ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>
                       <CreditCard size={20} />
                     </div>
@@ -169,9 +201,14 @@ const Lider = () => {
                         {pay.status === 'paid' ? 'Pago' : 'Em Aberto'}
                       </button>
                     </div>
-                    <button onClick={() => updatePayment(pay.id, { status: pay.status === 'paid' ? 'pending' : 'paid' })}>
-                      {pay.status === 'paid' ? <CheckCircle2 className="text-emerald-500" size={24} /> : <Clock className="text-slate-300" size={24} />}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => handleEdit(pay)} className="text-slate-300 hover:text-indigo-500 transition-colors">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => updatePayment(pay.id, { status: pay.status === 'paid' ? 'pending' : 'paid' })}>
+                        {pay.status === 'paid' ? <CheckCircle2 className="text-emerald-500" size={24} /> : <Clock className="text-slate-300" size={24} />}
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -185,7 +222,8 @@ const Lider = () => {
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
         type={activeTab === 'expenses' ? 'expense' : 'payment'}
-        onSubmit={activeTab === 'expenses' ? addExpense : addPayment}
+        onSubmit={handleSubmit}
+        initialData={editingItem}
       />
     </AppShell>
   );

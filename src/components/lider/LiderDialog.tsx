@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,10 @@ interface LiderDialogProps {
   onOpenChange: (open: boolean) => void;
   type: 'expense' | 'payment';
   onSubmit: (data: any) => void;
+  initialData?: any;
 }
 
-const LiderDialog = ({ open, onOpenChange, type, onSubmit }: LiderDialogProps) => {
+const LiderDialog = ({ open, onOpenChange, type, onSubmit, initialData }: LiderDialogProps) => {
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -29,6 +30,26 @@ const LiderDialog = ({ open, onOpenChange, type, onSubmit }: LiderDialogProps) =
     expense_type: 'system' as any,
     month_year: format(new Date(), "MMMM/yyyy", { locale: ptBR })
   });
+
+  useEffect(() => {
+    if (initialData && open) {
+      const amount = initialData.amount.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      
+      setFormData({
+        description: initialData.description || '',
+        amount: amount,
+        rawAmount: initialData.amount,
+        due_date: new Date(initialData.due_date),
+        expense_type: initialData.type || 'system',
+        month_year: initialData.month_year || ''
+      });
+    } else if (open) {
+      resetForm();
+    }
+  }, [initialData, open]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -42,24 +63,21 @@ const LiderDialog = ({ open, onOpenChange, type, onSubmit }: LiderDialogProps) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (type === 'expense') {
-      onSubmit({
-        description: formData.description,
-        amount: formData.rawAmount,
-        due_date: formData.due_date,
-        type: formData.expense_type,
-        status: 'pending'
-      });
-    } else {
-      onSubmit({
-        month_year: formData.month_year,
-        amount: formData.rawAmount,
-        due_date: formData.due_date,
-        status: 'pending'
-      });
-    }
+    const data = type === 'expense' ? {
+      description: formData.description,
+      amount: formData.rawAmount,
+      due_date: formData.due_date,
+      type: formData.expense_type,
+      status: initialData?.status || 'pending'
+    } : {
+      month_year: formData.month_year,
+      amount: formData.rawAmount,
+      due_date: formData.due_date,
+      status: initialData?.status || 'pending'
+    };
+
+    onSubmit(initialData ? { ...data, id: initialData.id } : data);
     onOpenChange(false);
-    resetForm();
   };
 
   const resetForm = () => {
@@ -79,10 +97,10 @@ const LiderDialog = ({ open, onOpenChange, type, onSubmit }: LiderDialogProps) =
         <div className="mx-auto w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full my-4" />
         <DrawerHeader className="px-6 relative">
           <DrawerTitle className="text-2xl font-bold">
-            {type === 'expense' ? 'Novo Custo Fixo' : 'Nova Mensalidade'}
+            {initialData ? 'Editar' : 'Novo'} {type === 'expense' ? 'Custo Fixo' : 'Mensalidade'}
           </DrawerTitle>
           <DrawerDescription>Preencha os dados abaixo</DrawerDescription>
-          <button onClick={() => onOpenChange(false)} className="absolute right-6 top-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-full"><X size={20} /></button>
+          <button onClick={() => onOpenChange(false)} className="absolute right-6 top-2p-2 bg-slate-100 dark:bg-slate-800 rounded-full"><X size={20} /></button>
         </DrawerHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 pb-10">
@@ -147,7 +165,7 @@ const LiderDialog = ({ open, onOpenChange, type, onSubmit }: LiderDialogProps) =
           </div>
 
           <Button type="submit" className="w-full bg-indigo-600 h-14 text-lg font-bold rounded-2xl mt-4">
-            Salvar
+            {initialData ? 'Salvar Alterações' : 'Salvar'}
           </Button>
         </form>
       </DrawerContent>
