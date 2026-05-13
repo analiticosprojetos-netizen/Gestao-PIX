@@ -8,7 +8,7 @@ import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2, AlertCirc
 import { useLider } from '@/context/LiderContext';
 import LiderCalculator from '@/components/lider/LiderCalculator';
 import LiderDialog from '@/components/lider/LiderDialog';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,6 @@ const Lider = () => {
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  // Cálculos de Resumo
   const summary = useMemo(() => {
     const allItems = [...expenses.map(e => ({ ...e, isExpense: true })), ...payments.map(p => ({ ...p, isExpense: false }))];
     const pending = allItems.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
@@ -48,42 +47,50 @@ const Lider = () => {
     }
   };
 
-  const ExpenseItem = ({ item }: { item: any }) => (
-    <Card className="border-none shadow-sm mb-3 dark:bg-slate-900 overflow-hidden">
-      <CardContent className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={cn("p-2 rounded-xl", getCategoryColor(item.type))}>
-            {getIcon(item.type)}
+  const ExpenseItem = ({ item }: { item: any }) => {
+    const isOverdue = item.status === 'pending' && isBefore(startOfDay(item.due_date), startOfDay(new Date()));
+
+    return (
+      <Card className={cn(
+        "border-none shadow-sm mb-3 dark:bg-slate-900 overflow-hidden transition-all",
+        isOverdue && "ring-1 ring-rose-500/50 bg-rose-50/30 dark:bg-rose-950/10"
+      )}>
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-2 rounded-xl", getCategoryColor(item.type))}>
+              {getIcon(item.type)}
+            </div>
+            <div>
+              <p className="font-bold text-slate-800 dark:text-slate-100 leading-tight">{item.description}</p>
+              <p className={cn("text-[10px] font-medium", isOverdue ? "text-rose-600" : "text-slate-500")}>
+                Vencimento: {format(item.due_date, "dd/MM/yyyy", { locale: ptBR })}
+                {isOverdue && " (Atrasado)"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-slate-800 dark:text-slate-100 leading-tight">{item.description}</p>
-            <p className="text-[10px] text-slate-500">
-              Vencimento: {format(item.due_date, "dd/MM/yyyy", { locale: ptBR })}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className={cn("font-bold", item.status === 'paid' ? "text-slate-400" : "text-slate-700 dark:text-slate-300")}>
-              {formatCurrency(item.amount)}
-            </p>
-            <button 
-              onClick={() => updateExpense(item.id, { status: item.status === 'paid' ? 'pending' : 'paid' })}
-              className={cn(
-                "text-[9px] font-bold px-2 py-0.5 rounded-full mt-1 transition-colors",
-                item.status === 'paid' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-700"
-              )}
-            >
-              {item.status === 'paid' ? 'Pago' : 'Em Aberto'}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className={cn("font-bold", item.status === 'paid' ? "text-slate-400" : "text-slate-700 dark:text-slate-300")}>
+                {formatCurrency(item.amount)}
+              </p>
+              <button 
+                onClick={() => updateExpense(item.id, { status: item.status === 'paid' ? 'pending' : 'paid' })}
+                className={cn(
+                  "text-[9px] font-bold px-2 py-0.5 rounded-full mt-1 transition-colors",
+                  item.status === 'paid' ? "bg-emerald-100 text-emerald-600" : isOverdue ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                )}
+              >
+                {item.status === 'paid' ? 'Pago' : 'Em Aberto'}
+              </button>
+            </div>
+            <button onClick={() => { if(confirm("Remover este registro?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500 transition-colors">
+              <Trash2 size={16} />
             </button>
           </div>
-          <button onClick={() => { if(confirm("Remover este registro?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500 transition-colors">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <AppShell>
@@ -106,7 +113,6 @@ const Lider = () => {
           </Button>
         </header>
 
-        {/* Resumo Financeiro */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-none bg-emerald-50 dark:bg-emerald-950/20">
             <CardContent className="p-4">

@@ -28,8 +28,9 @@ export const LiderProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: expData } = await supabase.from('lider_expenses').select('*').order('due_date', { ascending: true });
       const { data: payData } = await supabase.from('lider_payments').select('*').order('due_date', { ascending: true });
       
-      if (expData) setExpenses(expData.map(e => ({ ...e, due_date: new Date(e.due_date) })));
-      if (payData) setPayments(payData.map(p => ({ ...p, due_date: new Date(p.due_date) })));
+      // Adicionamos T12:00:00 para evitar que o fuso horário mude o dia
+      if (expData) setExpenses(expData.map(e => ({ ...e, due_date: new Date(e.due_date + 'T12:00:00') })));
+      if (payData) setPayments(payData.map(p => ({ ...p, due_date: new Date(p.due_date + 'T12:00:00') })));
     } catch (err) {
       console.error(err);
     } finally {
