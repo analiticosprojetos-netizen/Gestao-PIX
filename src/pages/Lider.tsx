@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2 } from 'lucide-react';
+import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2, AlertCircle, Layout, Cpu } from 'lucide-react';
 import { useLider } from '@/context/LiderContext';
 import LiderCalculator from '@/components/lider/LiderCalculator';
 import LiderDialog from '@/components/lider/LiderDialog';
@@ -20,38 +20,64 @@ const Lider = () => {
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  // Cálculos de Resumo
+  const summary = useMemo(() => {
+    const allItems = [...expenses.map(e => ({ ...e, isExpense: true })), ...payments.map(p => ({ ...p, isExpense: false }))];
+    const pending = allItems.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
+    const paid = allItems.filter(i => i.status === 'paid').reduce((acc, i) => acc + i.amount, 0);
+    return { pending, paid };
+  }, [expenses, payments]);
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'domain': return <Globe size={20} />;
+      case 'migration': return <Server size={20} />;
+      case 'website': return <Layout size={20} />;
+      case 'system': return <Cpu size={20} />;
+      default: return <AlertCircle size={20} />;
+    }
+  };
+
+  const getCategoryColor = (type: string) => {
+    switch (type) {
+      case 'domain': return "bg-blue-100 text-blue-600";
+      case 'migration': return "bg-orange-100 text-orange-600";
+      case 'website': return "bg-purple-100 text-purple-600";
+      case 'system': return "bg-indigo-100 text-indigo-600";
+      default: return "bg-slate-100 text-slate-600";
+    }
+  };
+
   const ExpenseItem = ({ item }: { item: any }) => (
-    <Card className="border-none shadow-sm mb-3 dark:bg-slate-900">
+    <Card className="border-none shadow-sm mb-3 dark:bg-slate-900 overflow-hidden">
       <CardContent className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "p-2 rounded-xl",
-            item.type === 'domain' ? "bg-blue-100 text-blue-600" : 
-            item.type === 'migration' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600"
-          )}>
-            {item.type === 'domain' ? <Globe size={20} /> : <Server size={20} />}
+          <div className={cn("p-2 rounded-xl", getCategoryColor(item.type))}>
+            {getIcon(item.type)}
           </div>
           <div>
             <p className="font-bold text-slate-800 dark:text-slate-100 leading-tight">{item.description}</p>
             <p className="text-[10px] text-slate-500">
-              Vence em {format(item.due_date, "dd/MM/yyyy", { locale: ptBR })}
+              Vencimento: {format(item.due_date, "dd/MM/yyyy", { locale: ptBR })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="font-bold text-slate-700 dark:text-slate-300">{formatCurrency(item.amount)}</p>
+            <p className={cn("font-bold", item.status === 'paid' ? "text-slate-400" : "text-slate-700 dark:text-slate-300")}>
+              {formatCurrency(item.amount)}
+            </p>
             <button 
               onClick={() => updateExpense(item.id, { status: item.status === 'paid' ? 'pending' : 'paid' })}
               className={cn(
-                "text-[9px] font-bold px-2 py-0.5 rounded-full mt-1",
-                item.status === 'paid' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                "text-[9px] font-bold px-2 py-0.5 rounded-full mt-1 transition-colors",
+                item.status === 'paid' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-700"
               )}
             >
-              {item.status === 'paid' ? 'Pago' : 'Pendente'}
+              {item.status === 'paid' ? 'Pago' : 'Em Aberto'}
             </button>
           </div>
-          <button onClick={() => { if(confirm("Remover?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500">
+          <button onClick={() => { if(confirm("Remover este registro?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500 transition-colors">
             <Trash2 size={16} />
           </button>
         </div>
@@ -80,6 +106,22 @@ const Lider = () => {
           </Button>
         </header>
 
+        {/* Resumo Financeiro */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-none bg-emerald-50 dark:bg-emerald-950/20">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold text-emerald-600 uppercase">Total Pago</p>
+              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(summary.paid)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-none bg-amber-50 dark:bg-amber-950/20">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold text-amber-600 uppercase">Em Aberto</p>
+              <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{formatCurrency(summary.pending)}</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <LiderCalculator />
 
         <Tabs defaultValue="expenses" onValueChange={(v) => setActiveTab(v as any)} className="w-full">
@@ -107,7 +149,20 @@ const Lider = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="font-bold text-slate-700 dark:text-slate-300">{formatCurrency(pay.amount)}</p>
+                    <div className="text-right">
+                      <p className={cn("font-bold", pay.status === 'paid' ? "text-slate-400" : "text-slate-700 dark:text-slate-300")}>
+                        {formatCurrency(pay.amount)}
+                      </p>
+                      <button 
+                        onClick={() => updatePayment(pay.id, { status: pay.status === 'paid' ? 'pending' : 'paid' })}
+                        className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full mt-1",
+                          pay.status === 'paid' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-700"
+                        )}
+                      >
+                        {pay.status === 'paid' ? 'Pago' : 'Em Aberto'}
+                      </button>
+                    </div>
                     <button onClick={() => updatePayment(pay.id, { status: pay.status === 'paid' ? 'pending' : 'paid' })}>
                       {pay.status === 'paid' ? <CheckCircle2 className="text-emerald-500" size={24} /> : <Clock className="text-slate-300" size={24} />}
                     </button>
