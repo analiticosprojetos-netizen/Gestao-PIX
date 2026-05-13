@@ -7,13 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, Server, CreditCard, CheckCircle2, Clock, Plus, Trash2 } from 'lucide-react';
 import { useLider } from '@/context/LiderContext';
 import LiderCalculator from '@/components/lider/LiderCalculator';
+import LiderDialog from '@/components/lider/LiderDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const Lider = () => {
-  const { expenses, payments, updateExpense, updatePayment, deleteExpense } = useLider();
+  const { expenses, payments, updateExpense, updatePayment, deleteExpense, addExpense, addPayment } = useLider();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'expenses' | 'system'>('expenses');
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -48,7 +51,7 @@ const Lider = () => {
               {item.status === 'paid' ? 'Pago' : 'Pendente'}
             </button>
           </div>
-          <button onClick={() => deleteExpense(item.id)} className="text-slate-300 hover:text-rose-500">
+          <button onClick={() => { if(confirm("Remover?")) deleteExpense(item.id) }} className="text-slate-300 hover:text-rose-500">
             <Trash2 size={16} />
           </button>
         </div>
@@ -59,19 +62,27 @@ const Lider = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        <header className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <Server size={24} />
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+              <Server size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold dark:text-white">Lider Refrigeração</h2>
+              <p className="text-xs text-slate-500">Gestão de Site e Sistemas</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold dark:text-white">Lider Refrigeração</h2>
-            <p className="text-xs text-slate-500">Gestão de Site e Sistemas</p>
-          </div>
+          <Button 
+            onClick={() => setDialogOpen(true)} 
+            className="bg-indigo-600 rounded-xl h-12 w-12 p-0 shadow-lg shadow-indigo-200 dark:shadow-none"
+          >
+            <Plus size={24} />
+          </Button>
         </header>
 
         <LiderCalculator />
 
-        <Tabs defaultValue="expenses" className="w-full">
+        <Tabs defaultValue="expenses" onValueChange={(v) => setActiveTab(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl h-12">
             <TabsTrigger value="expenses" className="rounded-lg">Custos Fixos</TabsTrigger>
             <TabsTrigger value="system" className="rounded-lg">Mensalidades</TabsTrigger>
@@ -104,9 +115,17 @@ const Lider = () => {
                 </CardContent>
               </Card>
             ))}
+            {payments.length === 0 && <p className="text-center py-8 text-slate-400 italic text-sm">Nenhuma mensalidade registrada</p>}
           </TabsContent>
         </Tabs>
       </div>
+
+      <LiderDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+        type={activeTab === 'expenses' ? 'expense' : 'payment'}
+        onSubmit={activeTab === 'expenses' ? addExpense : addPayment}
+      />
     </AppShell>
   );
 };
