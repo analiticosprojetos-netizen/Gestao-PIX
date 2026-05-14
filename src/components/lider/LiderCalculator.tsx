@@ -23,10 +23,10 @@ const LiderCalculator = () => {
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
           <Calculator size={18} />
-          Planos
+          Simulador de Planos
         </CardTitle>
         <div className="flex items-center gap-2">
-          <Label htmlFor="basePrice" className="text-[10px] font-bold text-indigo-600 uppercase">Valor Base:</Label>
+          <Label htmlFor="basePrice" className="text-[10px] font-bold text-indigo-600 uppercase">Base:</Label>
           <Input 
             id="basePrice"
             type="number"
@@ -43,9 +43,11 @@ const LiderCalculator = () => {
           const perMonth = discountedTotal / plan.months;
 
           return (
-            <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+            <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
               <div className="flex justify-between items-start mb-1">
-                <span className="text-[10px] font-bold uppercase text-slate-50">{plan.label}</span>
+                <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                  {plan.label}
+                </span>
                 {plan.discount > 0 && (
                   <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
                     -{plan.discount}%
@@ -55,7 +57,7 @@ const LiderCalculator = () => {
               <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
                 {formatCurrency(discountedTotal)}
               </p>
-              <p className="text-[9px] text-slate-500">
+              <p className="text-[9px] text-slate-500 font-medium">
                 {plan.months > 1 ? `${formatCurrency(perMonth)} /mês` : 'Pagamento único'}
               </p>
             </div>
