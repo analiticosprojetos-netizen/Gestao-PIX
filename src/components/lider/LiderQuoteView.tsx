@@ -38,26 +38,35 @@ const LiderQuoteView = ({ open, onOpenChange, basePrice }: LiderQuoteViewProps) 
       const { jsPDF } = (window as any).jspdf;
 
       const element = quoteRef.current;
+      
+      // Captura o elemento com scroll total para não cortar
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: 800 // Força uma largura estável para o print
+        scrollY: -window.scrollY, // Corrige problemas de scroll
+        windowWidth: 800,
+        height: element.scrollHeight, // Força a altura total do conteúdo
+        windowHeight: element.scrollHeight
       });
       
       const imgData = canvas.toDataURL('image/png');
+      
+      // Calcula dimensões para o PDF
+      const imgWidth = 210; // Largura A4 em mm
+      const pageHeight = 297; // Altura A4 em mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Se a imagem for maior que uma página A4, criamos um PDF com altura customizada ou múltiplas páginas
+      // Aqui vamos usar altura customizada para manter o design em uma única folha longa (comum em orçamentos digitais)
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: imgHeight > pageHeight ? [imgWidth, imgHeight] : 'a4'
       });
       
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       pdf.save(`Orcamento_Lider_${format(new Date(), 'dd_MM_yyyy')}.pdf`);
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -86,12 +95,11 @@ const LiderQuoteView = ({ open, onOpenChange, basePrice }: LiderQuoteViewProps) 
         </div>
 
         <div className="overflow-y-auto flex-1">
-          {/* Container que será capturado pelo PDF */}
           <div className="p-4 bg-slate-100 dark:bg-slate-900/50">
             <div 
               ref={quoteRef} 
               className="bg-white text-slate-900 shadow-2xl mx-auto p-10 rounded-[8px] w-full max-w-[700px]"
-              style={{ minHeight: '900px' }}
+              style={{ minHeight: 'fit-content' }}
             >
               {/* Cabeçalho do Orçamento */}
               <div className="border-b-4 border-indigo-600 pb-6 mb-8 flex justify-between items-end">
