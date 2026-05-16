@@ -48,7 +48,7 @@ const LiderCalculator = () => {
             <Info size={14} />
             <span className="text-[10px] font-bold uppercase tracking-wider">Distribuição do Valor Base</span>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <p className="text-[10px] text-slate-500 font-bold uppercase">Site (33%)</p>
               <p className="text-sm font-bold text-slate-800 dark:text-white">{formatCurrency(siteValue)}</p>
@@ -56,9 +56,13 @@ const LiderCalculator = () => {
             <div>
               <p className="text-[10px] text-slate-500 font-bold uppercase">Sistema (67%)</p>
               <p className="text-sm font-bold text-slate-800 dark:text-white">{formatCurrency(systemValue)}</p>
-              <p className="text-[8px] text-slate-400 leading-tight">Servidor e funcionalidades</p>
+            </div>
+            <div className="border-l border-indigo-100 dark:border-indigo-900/30 pl-2">
+              <p className="text-[10px] text-indigo-600 font-bold uppercase">Total</p>
+              <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400">{formatCurrency(basePrice)}</p>
             </div>
           </div>
+          <p className="text-[8px] text-slate-400 leading-tight mt-1">Sistema inclui servidor e todas as funcionalidades.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
