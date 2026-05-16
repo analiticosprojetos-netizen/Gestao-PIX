@@ -61,30 +61,36 @@ const LiderCalculator = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-2">
           {plans.map((plan) => {
             const total = basePrice * plan.months;
             const discountedTotal = total * (1 - plan.discount / 100);
             const perMonth = discountedTotal / plan.months;
 
             return (
-              <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
-                    {plan.label}
-                  </span>
-                  {plan.discount > 0 && (
-                    <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                      -{plan.discount}%
+              <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 px-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm flex items-center justify-between">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                      {plan.label}
                     </span>
-                  )}
+                    {plan.discount > 0 && (
+                      <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                        -{plan.discount}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {plan.months > 1 ? `${formatCurrency(perMonth)} /mês` : 'Pagamento único'}
+                  </p>
                 </div>
-                <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
-                  {formatCurrency(discountedTotal)}
-                </p>
-                <p className="text-[9px] text-slate-500 font-medium">
-                  {plan.months > 1 ? `${formatCurrency(perMonth)} /mês` : 'Pagamento único'}
-                </p>
+                
+                <div className="text-right">
+                  <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                    {formatCurrency(discountedTotal)}
+                  </p>
+                  <p className="text-[9px] text-slate-400 uppercase font-bold">Total</p>
+                </div>
               </div>
             );
           })}
