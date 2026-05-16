@@ -10,10 +10,10 @@ const LiderCalculator = () => {
   const [basePrice, setBasePrice] = useState(210);
   
   const plans = [
-    { months: 1, label: 'Mensal', discount: 0 },
-    { months: 6, label: 'Semestral', discount: 5 },
-    { months: 12, label: 'Anual', discount: 10 },
-    { months: 24, label: 'Bienal', discount: 15 },
+    { months: 1, label: '1 mês', discount: 0 },
+    { months: 6, label: '6 meses', discount: 5 },
+    { months: 12, label: '1 ano', discount: 10 },
+    { months: 24, label: '2 anos', discount: 15 },
   ];
 
   const formatCurrency = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -65,36 +65,35 @@ const LiderCalculator = () => {
           <p className="text-[8px] text-slate-400 leading-tight mt-1">Sistema inclui servidor e todas as funcionalidades.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {plans.map((plan) => {
             const total = basePrice * plan.months;
             const discountedTotal = total * (1 - plan.discount / 100);
             const perMonth = discountedTotal / plan.months;
 
             return (
-              <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 px-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm flex items-center justify-between">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
-                      {plan.label}
+              <div key={plan.months} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                    {plan.label}
+                  </span>
+                  {plan.discount > 0 && (
+                    <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                      -{plan.discount}%
                     </span>
-                    {plan.discount > 0 && (
-                      <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                        -{plan.discount}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium">
-                    {plan.months > 1 ? `${formatCurrency(perMonth)} /mês` : 'Pagamento único'}
-                  </p>
+                  )}
                 </div>
                 
-                <div className="text-right">
-                  <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                <div>
+                  <p className="text-base font-bold text-slate-800 dark:text-white leading-tight">
                     {formatCurrency(discountedTotal)}
                   </p>
                   <p className="text-[9px] text-slate-400 uppercase font-bold">Total</p>
                 </div>
+
+                <p className="text-[10px] text-slate-500 font-medium border-t border-slate-50 dark:border-slate-800 pt-1 mt-1">
+                  {plan.months > 1 ? `${formatCurrency(perMonth)} /mês` : 'Pagamento único'}
+                </p>
               </div>
             );
           })}
