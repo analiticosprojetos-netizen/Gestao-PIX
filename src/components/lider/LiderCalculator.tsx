@@ -23,7 +23,7 @@ const LiderCalculator = () => {
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
           <Calculator size={18} />
-          Simulador de Planos
+          Cálculos de planos
         </CardTitle>
         <div className="flex items-center gap-2">
           <Label htmlFor="basePrice" className="text-[10px] font-bold text-indigo-600 uppercase">Base:</Label>
