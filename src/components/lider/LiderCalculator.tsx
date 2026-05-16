@@ -43,7 +43,7 @@ const LiderCalculator = () => {
               className="h-7 w-20 text-xs font-bold rounded-lg border-indigo-200 bg-white dark:bg-slate-900"
             />
           </div>
-        </Header>
+        </CardHeader>
         
         <CardContent className="space-y-4">
           {/* Detalhamento da Distribuição */}
