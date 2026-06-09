@@ -12,7 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -41,41 +41,39 @@ const Index = () => {
   }, [transfers, installments]);
 
   const activeInvoice = useMemo(() => {
-    if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
+    const pendingInstallments = installments.filter(i => i.status === 'pending');
     
-    // Ordena parcelas pendentes por data
-    const pendingInstallments = [...installments]
-      .filter(i => i.status === 'pending')
-      .sort((a, b) => a.due_date.localeCompare(b.due_date));
-    
-    // Se não houver pendentes, pega o mês atual
     if (pendingInstallments.length === 0) {
-      const now = new Date();
-      const monthInstallments = installments.filter(i => {
-        const d = parseISO(i.due_date);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      });
-      const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
-      return { total, pending: 0, monthName: format(now, 'MMMM', { locale: ptBR }), dueDate: settings.cardClosingDay + 7 };
+      return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
     }
 
-    // Pega o mês da primeira parcela pendente (a fatura que precisa ser paga agora)
-    const firstPendingDate = parseISO(pendingInstallments[0].due_date);
-    const targetMonth = firstPendingDate.getMonth();
-    const targetYear = firstPendingDate.getFullYear();
+    // Ordena para pegar a data mais antiga pendente
+    const sortedPending = [...pendingInstallments].sort((a, b) => a.due_date.localeCompare(b.due_date));
+    const firstPendingDate = parseISO(sortedPending[0].due_date);
     
+    // Definimos o "mês da fatura" como o mês desse primeiro vencimento
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
     
-    // Filtra todas as parcelas (pagas ou não) desse mesmo mês/ano
-    const monthInstallments = installments.filter(i => {
+    // Para trazer o valor correto (7238,93), vamos somar TODAS as parcelas pendentes 
+    // que vencem até o final do mês dessa fatura atual.
+    const endOfTargetMonth = endOfMonth(firstPendingDate);
+    
+    const currentMonthInstallments = pendingInstallments.filter(i => {
       const d = parseISO(i.due_date);
-      return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+      return isBefore(d, endOfTargetMonth) || d.getTime() === endOfTargetMonth.getTime();
     });
 
-    const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
-    const pending = monthInstallments.filter(i => i.status === 'pending').reduce((acc, i) => acc + i.amount, 0);
+    const pending = currentMonthInstallments.reduce((acc, i) => acc + i.amount, 0);
     
-    return { total, pending, monthName, dueDate: firstPendingDate.getDate() };
+    // Se o usuário quer ver o total absoluto de tudo que está em aberto (como no print):
+    const totalAbsolutePending = pendingInstallments.reduce((acc, i) => acc + i.amount, 0);
+
+    return { 
+      total: totalAbsolutePending, // Mostra o total geral pendente
+      pending: totalAbsolutePending, 
+      monthName: "Total em Aberto", 
+      dueDate: firstPendingDate.getDate() 
+    };
   }, [installments, settings.cardClosingDay]);
 
   const totalPendingCards = useMemo(() => {
@@ -152,7 +150,7 @@ const Index = () => {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-rose-500/20 rounded-lg"><CreditCard size={14} className="text-rose-300" /></div>
-                <p className="text-[9px] text-rose-100 uppercase font-bold">Prévia</p>
+                <p className="text-[9px] text-rose-100 uppercase font-bold">Cartão</p>
               </div>
               <p className="text-xs font-bold text-rose-200">R$ {formatCurrency(totalPendingCards)}</p>
             </div>
@@ -166,13 +164,13 @@ const Index = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <CreditCard className="text-indigo-600" size={20} />
-              <h3 className="font-bold dark:text-white capitalize">Fatura de {activeInvoice.monthName}</h3>
+              <h3 className="font-bold dark:text-white">Total Pendente no Cartão</h3>
             </div>
             <Badge className={cn(
               "border-none",
-              activeInvoice.pending === 0 ? "bg-emerald-50 text-emerald-600" : "bg-indigo-50 text-indigo-600"
+              activeInvoice.pending === 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
             )}>
-              {activeInvoice.pending === 0 ? "Paga" : `Vence dia ${activeInvoice.dueDate}`}
+              {activeInvoice.pending === 0 ? "Tudo Pago" : `Atenção`}
             </Badge>
           </div>
           <div className="flex justify-between items-end">
@@ -181,10 +179,10 @@ const Index = () => {
                 R$ {formatCurrency(activeInvoice.pending)}
               </p>
               <p className="text-[10px] text-slate-500 font-medium mt-1">
-                Total da Fatura: R$ {formatCurrency(activeInvoice.total)}
+                Soma de todas as parcelas em aberto
               </p>
             </div>
-            <p className="text-xs text-slate-500">Fechamento dia {settings.cardClosingDay}</p>
+            <p className="text-xs text-slate-500">Ver detalhes</p>
           </div>
         </Link>
 
