@@ -10,6 +10,7 @@ interface CardContextType {
   transactions: CardTransaction[];
   installments: CardInstallment[];
   addTransaction: (data: Omit<CardTransaction, 'id' | 'created_at'>) => Promise<void>;
+  updateTransaction: (id: string, data: Omit<CardTransaction, 'id' | 'created_at'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   toggleInstallmentPaid: (id: string) => Promise<void>;
   loading: boolean;
@@ -40,6 +41,31 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
     fetchData();
   }, []);
 
+  const generateInstallments = (txId: string, data: Omit<CardTransaction, 'id' | 'created_at'>) => {
+    const newInstallments = [];
+    const installmentAmount = parseFloat((data.total_amount / data.installments_count).toFixed(2));
+    
+    for (let i = 1; i <= data.installments_count; i++) {
+      let dueDate = setDate(addMonths(new Date(data.purchase_date), i), data.closing_day + 7);
+      
+      const purchaseDay = new Date(data.purchase_date).getDate();
+      if (purchaseDay >= data.closing_day) {
+        dueDate = addMonths(dueDate, 1);
+      }
+
+      newInstallments.push({
+        transaction_id: txId,
+        number: i,
+        amount: i === data.installments_count 
+          ? (data.total_amount - (installmentAmount * (data.installments_count - 1))) 
+          : installmentAmount,
+        due_date: dueDate.toISOString().split('T')[0],
+        status: 'pending'
+      });
+    }
+    return newInstallments;
+  };
+
   const addTransaction = async (data: Omit<CardTransaction, 'id' | 'created_at'>) => {
     try {
       const { data: tx, error: txError } = await supabase
@@ -50,28 +76,7 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (txError) throw txError;
 
-      const newInstallments = [];
-      const installmentAmount = parseFloat((data.total_amount / data.installments_count).toFixed(2));
-      
-      for (let i = 1; i <= data.installments_count; i++) {
-        let dueDate = setDate(addMonths(new Date(data.purchase_date), i), data.closing_day + 7);
-        
-        const purchaseDay = new Date(data.purchase_date).getDate();
-        if (purchaseDay >= data.closing_day) {
-          dueDate = addMonths(dueDate, 1);
-        }
-
-        newInstallments.push({
-          transaction_id: tx.id,
-          number: i,
-          amount: i === data.installments_count 
-            ? (data.total_amount - (installmentAmount * (data.installments_count - 1))) 
-            : installmentAmount,
-          due_date: dueDate.toISOString().split('T')[0],
-          status: 'pending'
-        });
-      }
-
+      const newInstallments = generateInstallments(tx.id, data);
       const { error: instError } = await supabase.from('card_installments').insert(newInstallments);
       if (instError) throw instError;
 
@@ -82,9 +87,34 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateTransaction = async (id: string, data: Omit<CardTransaction, 'id' | 'created_at'>) => {
+    try {
+      // 1. Atualiza a transação principal
+      const { error: txError } = await supabase
+        .from('card_transactions')
+        .update(data)
+        .eq('id', id);
+
+      if (txError) throw txError;
+
+      // 2. Remove parcelas antigas e recria (para garantir que mudanças no valor/parcelas reflitam corretamente)
+      // Nota: Isso resetará o status de 'pago' das parcelas se o número de parcelas ou valor mudar.
+      const { error: delError } = await supabase.from('card_installments').delete().eq('transaction_id', id);
+      if (delError) throw delError;
+
+      const newInstallments = generateInstallments(id, data);
+      const { error: instError } = await supabase.from('card_installments').insert(newInstallments);
+      if (instError) throw instError;
+
+      fetchData();
+      showSuccess("Compra atualizada!");
+    } catch (err) {
+      showError("Erro ao atualizar compra");
+    }
+  };
+
   const deleteTransaction = async (id: string) => {
     try {
-      // O Supabase está configurado com ON DELETE CASCADE, então deletar a transação deleta as parcelas
       const { error } = await supabase.from('card_transactions').delete().eq('id', id);
       if (error) throw error;
       
@@ -115,7 +145,7 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <CardContext.Provider value={{ transactions, installments, addTransaction, deleteTransaction, toggleInstallmentPaid, loading }}>
+    <CardContext.Provider value={{ transactions, installments, addTransaction, updateTransaction, deleteTransaction, toggleInstallmentPaid, loading }}>
       {children}
     </CardContext.Provider>
   );

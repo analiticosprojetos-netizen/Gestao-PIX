@@ -13,14 +13,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CardTransaction } from '@/types/transfer';
 
 interface CardTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: any) => void;
+  initialData?: CardTransaction | null;
 }
 
-const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransactionDialogProps) => {
+const CardTransactionDialog = ({ open, onOpenChange, onSubmit, initialData }: CardTransactionDialogProps) => {
   const { settings } = useSettings();
   const [formData, setFormData] = useState({
     description: '',
@@ -32,10 +34,21 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
     closing_day: settings.cardClosingDay.toString()
   });
 
-  // Atualiza o dia de fechamento se ele mudar nas configurações
   useEffect(() => {
-    setFormData(prev => ({ ...prev, closing_day: settings.cardClosingDay.toString() }));
-  }, [settings.cardClosingDay]);
+    if (initialData && open) {
+      setFormData({
+        description: initialData.description,
+        amount: initialData.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        rawAmount: initialData.total_amount,
+        installments_count: initialData.installments_count.toString(),
+        recipient_name: initialData.recipient_name,
+        purchase_date: new Date(initialData.purchase_date),
+        closing_day: initialData.closing_day.toString()
+      });
+    } else if (open) {
+      resetForm();
+    }
+  }, [initialData, open, settings.cardClosingDay]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -88,8 +101,12 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
         <div className="mx-auto w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full my-4" />
         
         <DrawerHeader className="text-left px-6 relative">
-          <DrawerTitle className="text-2xl font-bold">Nova Compra no Cartão</DrawerTitle>
-          <DrawerDescription>Registre compras parceladas</DrawerDescription>
+          <DrawerTitle className="text-2xl font-bold">
+            {initialData ? 'Editar Compra' : 'Nova Compra no Cartão'}
+          </DrawerTitle>
+          <DrawerDescription>
+            {initialData ? 'Altere os dados da compra' : 'Registre compras parceladas'}
+          </DrawerDescription>
           <button 
             onClick={() => onOpenChange(false)}
             className="absolute right-6 top-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
@@ -180,7 +197,7 @@ const CardTransactionDialog = ({ open, onOpenChange, onSubmit }: CardTransaction
           </div>
 
           <Button type="submit" className="w-full bg-indigo-600 h-14 text-lg font-bold rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none">
-            Salvar Compra
+            {initialData ? 'Salvar Alterações' : 'Salvar Compra'}
           </Button>
         </form>
       </DrawerContent>

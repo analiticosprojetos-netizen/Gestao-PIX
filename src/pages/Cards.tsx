@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, CheckCircle2, Circle, Trash2, Plus } from 'lucide-react';
+import { Search, CheckCircle2, Circle, Trash2, Plus, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,11 +12,13 @@ import { cn } from "@/lib/utils";
 import { useCards } from '@/context/CardContext';
 import CardTransactionDialog from '@/components/cards/CardTransactionDialog';
 import { Button } from '@/components/ui/button';
+import { CardTransaction } from '@/types/transfer';
 
 const Cards = () => {
-  const { transactions, installments, toggleInstallmentPaid, addTransaction, deleteTransaction } = useCards();
+  const { transactions, installments, toggleInstallmentPaid, addTransaction, updateTransaction, deleteTransaction } = useCards();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<CardTransaction | null>(null);
 
   const filteredInstallments = installments.filter(inst => {
     const tx = transactions.find(t => t.id === inst.transaction_id);
@@ -27,6 +29,24 @@ const Cards = () => {
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleEdit = (tx: CardTransaction) => {
+    setEditingTransaction(tx);
+    setDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingTransaction(null);
+    setDialogOpen(true);
+  };
+
+  const handleSubmit = (data: any) => {
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, data);
+    } else {
+      addTransaction(data);
+    }
   };
 
   const InstallmentItem = ({ inst }: { inst: any }) => {
@@ -54,20 +74,30 @@ const Cards = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="flex items-center gap-2">
+            <div className="text-right mr-1">
               <p className="font-bold text-slate-700 dark:text-slate-300 font-mono">R$ {formatCurrency(inst.amount)}</p>
             </div>
-            <button 
-              onClick={() => {
-                if(confirm("Deseja excluir toda esta compra (todas as parcelas)?")) {
-                  deleteTransaction(tx.id);
-                }
-              }}
-              className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-            >
-              <Trash2 size={18} />
-            </button>
+            <div className="flex flex-col gap-1">
+              <button 
+                onClick={() => handleEdit(tx)}
+                className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
+                title="Editar compra"
+              >
+                <Pencil size={16} />
+              </button>
+              <button 
+                onClick={() => {
+                  if(confirm("Deseja excluir toda esta compra (todas as parcelas)?")) {
+                    deleteTransaction(tx.id);
+                  }
+                }}
+                className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                title="Excluir compra"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -87,7 +117,7 @@ const Cards = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="bg-indigo-600 rounded-xl h-12 w-12 p-0">
+          <Button onClick={handleAdd} className="bg-indigo-600 rounded-xl h-12 w-12 p-0">
             <Plus size={24} />
           </Button>
         </div>
@@ -118,7 +148,8 @@ const Cards = () => {
       <CardTransactionDialog 
         open={dialogOpen} 
         onOpenChange={setDialogOpen} 
-        onSubmit={addTransaction} 
+        onSubmit={handleSubmit} 
+        initialData={editingTransaction}
       />
     </AppShell>
   );
