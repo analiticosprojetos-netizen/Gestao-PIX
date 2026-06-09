@@ -20,12 +20,27 @@ const Cards = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<CardTransaction | null>(null);
 
-  const filteredInstallments = installments.filter(inst => {
-    const tx = transactions.find(t => t.id === inst.transaction_id);
-    if (!tx) return false;
-    return tx.description.toLowerCase().includes(search.toLowerCase()) || 
-           tx.recipient_name.toLowerCase().includes(search.toLowerCase());
-  });
+  const filteredInstallments = installments
+    .filter(inst => {
+      const tx = transactions.find(t => t.id === inst.transaction_id);
+      if (!tx) return false;
+      return tx.description.toLowerCase().includes(search.toLowerCase()) || 
+             tx.recipient_name.toLowerCase().includes(search.toLowerCase());
+    })
+    .sort((a, b) => {
+      const txA = transactions.find(t => t.id === a.transaction_id);
+      const txB = transactions.find(t => t.id === b.transaction_id);
+      if (!txA || !txB) return 0;
+      
+      // Ordena pela data da compra (mais antiga para mais nova)
+      const dateA = new Date(txA.purchase_date).getTime();
+      const dateB = new Date(txB.purchase_date).getTime();
+      
+      if (dateA !== dateB) return dateA - dateB;
+      
+      // Se for a mesma data de compra, ordena pelo número da parcela
+      return a.number - b.number;
+    });
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,7 +85,10 @@ const Cards = () => {
                 {tx.description} ({inst.number}/{tx.installments_count})
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {tx.recipient_name} • Vence {format(new Date(inst.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                {tx.recipient_name} • Compra: {format(new Date(tx.purchase_date), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+              <p className="text-[9px] text-indigo-500 font-medium">
+                Vencimento: {format(new Date(inst.due_date), "dd/MM/yyyy", { locale: ptBR })}
               </p>
             </div>
           </div>
