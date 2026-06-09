@@ -4,7 +4,7 @@ import React from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowUpRight, ArrowDownLeft, CreditCard, X, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       const tx = transactions.find(t => t.id === inst.transaction_id)!;
       return {
         id: inst.id,
-        date: new Date(inst.due_date),
+        date: parseISO(inst.due_date),
         description: `Parcela ${inst.number}/${tx.installments_count}: ${tx.description}`,
         amount: inst.amount,
         type: 'debit',
@@ -55,6 +55,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
       };
     });
 
+  // Ordenação: Mais novo (data maior) para o mais antigo (data menor)
   const history = [...personTransfers, ...personInstallments].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const totalBalance = history.reduce((acc, item) => {
@@ -81,7 +82,6 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         </DrawerHeader>
         <div className="p-6 overflow-y-auto space-y-4">
           {history.map((item) => {
-            // Só fica cinza se for DÉBITO e estiver PAGO/CONCLUÍDO
             const isSettledDebit = item.type === 'debit' && (item.status === 'completed' || item.status === 'paid');
             
             return (
