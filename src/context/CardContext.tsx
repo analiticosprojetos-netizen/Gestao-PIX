@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CardTransaction, CardInstallment } from '@/types/transfer';
 import { supabase } from '@/lib/supabase';
 import { showSuccess, showError } from '@/utils/toast';
-import { addMonths, setDate } from 'date-fns';
+import { addMonths, setDate, parseISO } from 'date-fns';
 
 interface CardContextType {
   transactions: CardTransaction[];
@@ -45,10 +45,15 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
     const newInstallments = [];
     const installmentAmount = parseFloat((data.total_amount / data.installments_count).toFixed(2));
     
+    // Usamos parseISO e setamos meio-dia para evitar problemas de fuso horário
+    const purchaseDate = parseISO(data.purchase_date as any);
+    const purchaseDay = purchaseDate.getDate();
+
     for (let i = 1; i <= data.installments_count; i++) {
-      let dueDate = setDate(addMonths(new Date(data.purchase_date), i), data.closing_day + 7);
+      // i-1 para que a primeira parcela (i=1) comece no mês da compra (ou no próximo se já fechou)
+      let dueDate = setDate(addMonths(purchaseDate, i - 1), data.closing_day + 7);
       
-      const purchaseDay = new Date(data.purchase_date).getDate();
+      // Se a compra foi feita no dia do fechamento ou depois, a primeira parcela pula para o próximo mês
       if (purchaseDay >= data.closing_day) {
         dueDate = addMonths(dueDate, 1);
       }
@@ -89,7 +94,6 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateTransaction = async (id: string, data: Omit<CardTransaction, 'id' | 'created_at'>) => {
     try {
-      // 1. Atualiza a transação principal
       const { error: txError } = await supabase
         .from('card_transactions')
         .update(data)
@@ -97,8 +101,6 @@ export const CardProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (txError) throw txError;
 
-      // 2. Remove parcelas antigas e recria (para garantir que mudanças no valor/parcelas reflitam corretamente)
-      // Nota: Isso resetará o status de 'pago' das parcelas se o número de parcelas ou valor mudar.
       const { error: delError } = await supabase.from('card_installments').delete().eq('transaction_id', id);
       if (delError) throw delError;
 

@@ -12,7 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -24,13 +24,11 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // 1. Cálculos PIX (Dinheiro em conta - APENAS CONCLUÍDOS)
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed');
     const totalIn = completedTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
     const totalOut = completedTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
     
-    // Subtrai também o que já foi pago no cartão (pois saiu do caixa)
     const totalPaidCards = installments
       .filter(i => i.status === 'paid')
       .reduce((acc, i) => acc + i.amount, 0);
@@ -42,30 +40,36 @@ const Index = () => {
     };
   }, [transfers, installments]);
 
-  // 2. Cálculo da Fatura Ativa
   const activeInvoice = useMemo(() => {
     if (installments.length === 0) return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
     
-    const pendingInstallments = installments
+    // Ordena parcelas pendentes por data
+    const pendingInstallments = [...installments]
       .filter(i => i.status === 'pending')
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => a.due_date.localeCompare(b.due_date));
     
+    // Se não houver pendentes, pega o mês atual
     if (pendingInstallments.length === 0) {
       const now = new Date();
       const monthInstallments = installments.filter(i => {
-        const d = new Date(i.due_date);
+        const d = parseISO(i.due_date);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
       });
       const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
       return { total, pending: 0, monthName: format(now, 'MMMM', { locale: ptBR }), dueDate: settings.cardClosingDay + 7 };
     }
 
-    const firstPendingDate = new Date(pendingInstallments[0].due_date);
+    // Pega o mês da primeira parcela pendente (a fatura que precisa ser paga agora)
+    const firstPendingDate = parseISO(pendingInstallments[0].due_date);
+    const targetMonth = firstPendingDate.getMonth();
+    const targetYear = firstPendingDate.getFullYear();
+    
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
     
+    // Filtra todas as parcelas (pagas ou não) desse mesmo mês/ano
     const monthInstallments = installments.filter(i => {
-      const d = new Date(i.due_date);
-      return d.getMonth() === firstPendingDate.getMonth() && d.getFullYear() === firstPendingDate.getFullYear();
+      const d = parseISO(i.due_date);
+      return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
     });
 
     const total = monthInstallments.reduce((acc, i) => acc + i.amount, 0);
@@ -74,7 +78,6 @@ const Index = () => {
     return { total, pending, monthName, dueDate: firstPendingDate.getDate() };
   }, [installments, settings.cardClosingDay]);
 
-  // 3. Cálculo da Prévia (Total de todas as parcelas pendentes de cartão)
   const totalPendingCards = useMemo(() => {
     return installments
       .filter(i => i.status === 'pending')
@@ -83,7 +86,6 @@ const Index = () => {
 
   const netBalance = pixBalance.balance - activeInvoice.pending;
 
-  // 4. Saldo por Pessoa
   const peopleWithBalance = useMemo(() => {
     const balances: Record<string, number> = {};
     settings.contacts.forEach(name => { balances[name] = 0; });
