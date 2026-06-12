@@ -16,6 +16,11 @@ interface VoiceAssistantProps {
 const VoiceAssistant = ({ isListening, transcript, onConfirm, onRetry, onClose }: VoiceAssistantProps) => {
   if (!isListening && !transcript) return null;
 
+  // Capitaliza a primeira letra do texto reconhecido para exibição amigável
+  const formattedTranscript = transcript 
+    ? transcript.charAt(0).toUpperCase() + transcript.slice(1) 
+    : '';
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white dark:bg-slate-900 w-[90%] max-w-sm p-8 rounded-[40px] shadow-2xl flex flex-col items-center gap-6 border dark:border-slate-800 animate-in zoom-in-95 duration-300 relative">
@@ -53,7 +58,7 @@ const VoiceAssistant = ({ isListening, transcript, onConfirm, onRetry, onClose }
               
               <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border-2 border-indigo-100 dark:border-indigo-900/30 min-h-[100px] flex items-center justify-center text-center">
                 <p className="text-xl font-medium text-slate-800 dark:text-white leading-relaxed">
-                  "{transcript}"
+                  "{formattedTranscript}"
                 </p>
               </div>
 
