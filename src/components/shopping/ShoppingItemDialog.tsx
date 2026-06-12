@@ -5,8 +5,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { ShoppingItem } from '@/types/shopping';
+import { getEstimatedPrice } from '@/utils/priceEstimator';
 
 interface ShoppingItemDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
     quantity: '1',
     price: ''
   });
+  const [suggestedPrice, setSuggestedPrice] = useState<number>(0);
 
   useEffect(() => {
     if (item && open) {
@@ -29,14 +31,36 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
         quantity: item.quantity.toString(),
         price: item.price > 0 ? item.price.toString() : ''
       });
+      setSuggestedPrice(0);
     } else if (open) {
       setFormData({
         name: '',
         quantity: '1',
         price: ''
       });
+      setSuggestedPrice(0);
     }
   }, [item, open]);
+
+  // Monitora a mudança de nome para sugerir o preço médio
+  useEffect(() => {
+    if (!item && formData.name.trim().length > 2) {
+      const estimate = getEstimatedPrice(formData.name);
+      setSuggestedPrice(estimate);
+    } else {
+      setSuggestedPrice(0);
+    }
+  }, [formData.name, item]);
+
+  const applySuggestion = () => {
+    if (suggestedPrice > 0) {
+      setFormData(prev => ({
+        ...prev,
+        price: suggestedPrice.toFixed(2)
+      }));
+      setSuggestedPrice(0);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +107,20 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
               autoFocus
             />
           </div>
+
+          {suggestedPrice > 0 && (
+            <button
+              type="button"
+              onClick={applySuggestion}
+              className="w-full flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/30 rounded-xl text-indigo-700 dark:text-indigo-300 text-xs font-bold transition-all active:scale-95"
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles size={14} className="animate-pulse" />
+                Preço médio sugerido: R$ {suggestedPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+              <span className="bg-indigo-600 text-white px-2 py-1 rounded-lg text-[10px]">Usar</span>
+            </button>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">

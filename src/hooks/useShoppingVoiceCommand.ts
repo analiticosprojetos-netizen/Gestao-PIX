@@ -2,6 +2,7 @@
 
 import { useShopping } from '@/context/ShoppingContext';
 import { showSuccess, showError } from '@/utils/toast';
+import { getEstimatedPrice } from '@/utils/priceEstimator';
 
 export const useShoppingVoiceCommand = () => {
   const { items, addItem, toggleChecked, deleteItem } = useShopping();
@@ -76,6 +77,12 @@ export const useShoppingVoiceCommand = () => {
 
     if (name.length > 1) {
       const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
+      
+      // Se o preço não foi informado por voz, busca o preço médio estimado automaticamente!
+      if (price === 0) {
+        price = getEstimatedPrice(capitalizedName);
+      }
+
       await addItem({
         name: capitalizedName,
         quantity,
