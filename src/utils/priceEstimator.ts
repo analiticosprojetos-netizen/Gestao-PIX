@@ -95,3 +95,136 @@ export const getEstimatedPrice = (itemName: string): number => {
   // Retorna 0 se não encontrar nenhuma pista
   return 0;
 };
+
+/**
+ * Retorna a categoria do produto com base no nome
+ */
+export const getItemCategory = (itemName: string): string => {
+  const cleanName = itemName.toLowerCase().trim();
+
+  // Higiene Pessoal
+  if (
+    cleanName.includes("sabonete") || 
+    cleanName.includes("shampoo") || 
+    cleanName.includes("condicionador") || 
+    cleanName.includes("dental") || 
+    cleanName.includes("dente") || 
+    cleanName.includes("higienico") || 
+    cleanName.includes("higiênico") || 
+    cleanName.includes("desodorante") || 
+    cleanName.includes("fio dental") || 
+    cleanName.includes("absorvente") || 
+    cleanName.includes("gilete") || 
+    cleanName.includes("barbear") || 
+    cleanName.includes("creme") && (cleanName.includes("pele") || cleanName.includes("rosto"))
+  ) {
+    return "Higiene Pessoal";
+  }
+
+  // Limpeza
+  if (
+    cleanName.includes("detergente") || 
+    cleanName.includes("sabão") || 
+    cleanName.includes("sabao") || 
+    cleanName.includes("amaciante") || 
+    cleanName.includes("desinfetante") || 
+    cleanName.includes("esponja") || 
+    cleanName.includes("sanitaria") || 
+    cleanName.includes("sanitária") || 
+    cleanName.includes("cloro") || 
+    cleanName.includes("lustra") || 
+    cleanName.includes("multiuso") || 
+    cleanName.includes("veja") || 
+    cleanName.includes("vassoura") || 
+    cleanName.includes("saco de lixo")
+  ) {
+    return "Limpeza";
+  }
+
+  // Bebidas
+  if (
+    cleanName.includes("refrigerante") || 
+    cleanName.includes("suco") || 
+    cleanName.includes("cerveja") || 
+    cleanName.includes("vinho") || 
+    cleanName.includes("agua") || 
+    cleanName.includes("água") || 
+    cleanName.includes("refris") || 
+    cleanName.includes("coca") || 
+    cleanName.includes("guarana") || 
+    cleanName.includes("guaraná") || 
+    cleanName.includes("fanta") || 
+    cleanName.includes("sprite") || 
+    cleanName.includes("energético") || 
+    cleanName.includes("energetico")
+  ) {
+    return "Bebidas";
+  }
+
+  // Hortifruti
+  if (
+    cleanName.includes("banana") || 
+    cleanName.includes("maçã") || 
+    cleanName.includes("maca") || 
+    cleanName.includes("tomate") || 
+    cleanName.includes("cebola") || 
+    cleanName.includes("batata") || 
+    cleanName.includes("alho") || 
+    cleanName.includes("laranja") || 
+    cleanName.includes("limão") || 
+    cleanName.includes("limao") || 
+    cleanName.includes("alface") || 
+    cleanName.includes("cenoura") || 
+    cleanName.includes("abacaxi") || 
+    cleanName.includes("uva") || 
+    cleanName.includes("melancia") || 
+    cleanName.includes("pimentão") || 
+    cleanName.includes("pimentao")
+  ) {
+    return "Hortifruti";
+  }
+
+  // Padaria / Sobremesas
+  if (
+    cleanName.includes("pão") || 
+    cleanName.includes("pao") || 
+    cleanName.includes("bolo") || 
+    cleanName.includes("bolacha") || 
+    cleanName.includes("biscoito") || 
+    cleanName.includes("torrada") || 
+    cleanName.includes("pão de forma") || 
+    cleanName.includes("pão puma") || 
+    cleanName.includes("doce") || 
+    cleanName.includes("chocolate") || 
+    cleanName.includes("pipoca") || 
+    cleanName.includes("salgadinho") || 
+    cleanName.includes("batata palha")
+  ) {
+    return "Padaria & Snacks";
+  }
+
+  // Carnes / Frios
+  if (
+    cleanName.includes("carne") || 
+    cleanName.includes("frango") || 
+    cleanName.includes("peixe") || 
+    cleanName.includes("bife") || 
+    cleanName.includes("alcatra") || 
+    cleanName.includes("contra") || 
+    cleanName.includes("moída") || 
+    cleanName.includes("moida") || 
+    cleanName.includes("presunto") || 
+    cleanName.includes("queijo") || 
+    cleanName.includes("mussarela") || 
+    cleanName.includes("mortadela") || 
+    cleanName.includes("salsicha") || 
+    cleanName.includes("linguiça") || 
+    cleanName.includes("linguica") || 
+    cleanName.includes("bacon")
+  ) {
+    return "Carnes & Frios";
+  }
+
+  // Mercearia (Padrão)
+  return "Mercearia";
+};

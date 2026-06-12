@@ -9,9 +9,10 @@ import { useShopping } from '@/context/ShoppingContext';
 import { useShoppingVoiceCommand } from '@/hooks/useShoppingVoiceCommand';
 import ShoppingItemDialog from '@/components/shopping/ShoppingItemDialog';
 import VoiceAssistant from '@/components/voice/VoiceAssistant';
+import { getItemCategory } from '@/utils/priceEstimator';
 import { 
   Search, Plus, Mic, Trash2, CheckCircle2, Circle, 
-  ShoppingCart, Sparkles, Trash, Pencil, CheckSquare
+  ShoppingCart, Sparkles, Trash, Pencil, Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showError } from '@/utils/toast';
@@ -32,6 +33,21 @@ const ShoppingList = () => {
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Agrupamento por categorias
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, typeof items> = {};
+    
+    filteredItems.forEach(item => {
+      const category = getItemCategory(item.name);
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(item);
+    });
+
+    return groups;
+  }, [filteredItems]);
 
   // Cálculos de Totais
   const totals = useMemo(() => {
@@ -125,6 +141,26 @@ const ShoppingList = () => {
     setTranscript('');
   };
 
+  // Cores para as categorias
+  const getCategoryStyle = (category: string) => {
+    switch (category) {
+      case "Higiene Pessoal":
+        return "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 border-blue-100 dark:border-blue-900/30";
+      case "Limpeza":
+        return "bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 border-purple-100 dark:border-purple-900/30";
+      case "Bebidas":
+        return "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border-amber-100 dark:border-amber-900/30";
+      case "Hortifruti":
+        return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900/30";
+      case "Padaria & Snacks":
+        return "bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-300 border-orange-100 dark:border-orange-900/30";
+      case "Carnes & Frios":
+        return "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 border-rose-100 dark:border-rose-900/30";
+      default:
+        return "bg-slate-50 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-100 dark:border-slate-800";
+    }
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -175,8 +211,8 @@ const ShoppingList = () => {
           </Button>
         </div>
 
-        {/* Lista de Itens */}
-        <div className="space-y-3">
+        {/* Lista de Itens Agrupados */}
+        <div className="space-y-6">
           <div className="flex justify-between items-center px-1">
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
               Itens na Lista ({filteredItems.length})
@@ -195,76 +231,90 @@ const ShoppingList = () => {
             )}
           </div>
 
-          <div className="space-y-2">
-            {filteredItems.map(item => (
-              <Card 
-                key={item.id} 
-                className={cn(
-                  "border-none shadow-sm overflow-hidden transition-all",
-                  item.checked ? "bg-slate-50/50 dark:bg-slate-900/40 opacity-60" : "bg-white dark:bg-slate-900"
-                )}
-              >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <button 
-                      onClick={() => toggleChecked(item.id)}
-                      className="transition-transform active:scale-90 flex-shrink-0"
-                    >
-                      {item.checked ? (
-                        <CheckCircle2 className="text-emerald-500" size={24} />
-                      ) : (
-                        <Circle className="text-slate-300 dark:text-slate-600" size={24} />
-                      )}
-                    </button>
-                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => handleEdit(item)}>
-                      <p className={cn(
-                        "font-bold text-slate-800 dark:text-slate-100 leading-tight truncate",
-                        item.checked && "text-slate-400 line-through"
-                      )}>
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Qtd: {item.quantity} {item.price > 0 && `• R$ ${formatCurrency(item.price)} un.`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 ml-2">
-                    {item.price > 0 && (
-                      <p className={cn(
-                        "font-bold font-mono text-sm",
-                        item.checked ? "text-slate-400" : "text-slate-700 dark:text-slate-300"
-                      )}>
-                        R$ {formatCurrency(item.price * item.quantity)}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => handleEdit(item)}
-                        className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button 
-                        onClick={() => deleteItem(item.id)}
-                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {filteredItems.length === 0 && (
-              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                <ShoppingCart className="mx-auto text-slate-300 dark:text-slate-700 mb-3" size={40} />
-                <p className="text-slate-400 italic text-sm">Sua lista de compras está vazia</p>
-                <p className="text-xs text-slate-400 mt-1">Toque no microfone ou no botão + para adicionar</p>
+          {Object.entries(groupedItems).map(([category, categoryItems]) => (
+            <div key={category} className="space-y-2">
+              {/* Header da Categoria */}
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold w-fit",
+                getCategoryStyle(category)
+              )}>
+                <Tag size={12} />
+                {category} ({categoryItems.length})
               </div>
-            )}
-          </div>
+
+              {/* Itens da Categoria */}
+              <div className="space-y-2">
+                {categoryItems.map(item => (
+                  <Card 
+                    key={item.id} 
+                    className={cn(
+                      "border-none shadow-sm overflow-hidden transition-all",
+                      item.checked ? "bg-slate-50/50 dark:bg-slate-900/40 opacity-60" : "bg-white dark:bg-slate-900"
+                    )}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <button 
+                          onClick={() => toggleChecked(item.id)}
+                          className="transition-transform active:scale-90 flex-shrink-0"
+                        >
+                          {item.checked ? (
+                            <CheckCircle2 className="text-emerald-500" size={24} />
+                          ) : (
+                            <Circle className="text-slate-300 dark:text-slate-600" size={24} />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => handleEdit(item)}>
+                          <p className={cn(
+                            "font-bold text-slate-800 dark:text-slate-100 leading-tight truncate",
+                            item.checked && "text-slate-400 line-through"
+                          )}>
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Qtd: {item.quantity} {item.price > 0 && `• R$ ${formatCurrency(item.price)} un.`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 ml-2">
+                        {item.price > 0 && (
+                          <p className={cn(
+                            "font-bold font-mono text-sm",
+                            item.checked ? "text-slate-400" : "text-slate-700 dark:text-slate-300"
+                          )}>
+                            R$ {formatCurrency(item.price * item.quantity)}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => handleEdit(item)}
+                            className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button 
+                            onClick={() => deleteItem(item.id)}
+                            className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {filteredItems.length === 0 && (
+            <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+              <ShoppingCart className="mx-auto text-slate-300 dark:text-slate-700 mb-3" size={40} />
+              <p className="text-slate-400 italic text-sm">Sua lista de compras está vazia</p>
+              <p className="text-xs text-slate-400 mt-1">Toque no microfone ou no botão + para adicionar</p>
+            </div>
+          )}
         </div>
 
         {/* Dicas de Voz */}
