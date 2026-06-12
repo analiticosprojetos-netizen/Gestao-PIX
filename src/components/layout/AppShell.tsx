@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, Moon, Sun, SendHorizontal, CreditCard, Server } from 'lucide-react';
+import { Home, Receipt, Settings, Moon, Sun, SendHorizontal, ShoppingCart } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/SettingsContext';
 
@@ -12,16 +12,16 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   const navItems = [
     { icon: Home, label: 'Início', path: '/' },
+    { icon: Receipt, label: 'Boletos', path: '/bills' },
     { icon: SendHorizontal, label: 'PIX', path: '/pix' },
-    { icon: CreditCard, label: 'Cartão', path: '/cards' },
-    { icon: Server, label: 'Lider', path: '/lider' },
+    { icon: ShoppingCart, label: 'Lista', path: '/shopping' },
     { icon: Settings, label: 'Ajustes', path: '/settings' },
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">Gestão PIX</h1>
+        <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">AlertaBoleto</h1>
         <button 
           onClick={toggleTheme}
           className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-all hover:scale-110 active:scale-95"
