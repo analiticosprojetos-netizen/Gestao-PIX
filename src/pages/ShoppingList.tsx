@@ -21,6 +21,7 @@ const ShoppingList = () => {
   const { items, addItem, updateItem, deleteItem, toggleChecked, clearCheckedItems } = useShopping();
   const { processShoppingCommand } = useShoppingVoiceCommand();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
@@ -30,9 +31,26 @@ const ShoppingList = () => {
   const [transcript, setTranscript] = useState('');
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
 
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Lista de todas as categorias possíveis para os botões de filtro
+  const categories = [
+    'Todos',
+    'Higiene Pessoal',
+    'Limpeza',
+    'Bebidas',
+    'Hortifruti',
+    'Padaria & Snacks',
+    'Carnes & Frios',
+    'Mercearia'
+  ];
+
+  // Filtra os itens por busca de texto e pela categoria selecionada
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = selectedCategory === 'Todos' || getItemCategory(item.name) === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, search, selectedCategory]);
 
   // Agrupamento por categorias
   const groupedItems = useMemo(() => {
@@ -161,6 +179,28 @@ const ShoppingList = () => {
     }
   };
 
+  // Cores para os botões de filtro ativos
+  const getFilterActiveStyle = (category: string) => {
+    switch (category) {
+      case "Todos":
+        return "bg-indigo-600 text-white";
+      case "Higiene Pessoal":
+        return "bg-blue-600 text-white";
+      case "Limpeza":
+        return "bg-purple-600 text-white";
+      case "Bebidas":
+        return "bg-amber-600 text-white";
+      case "Hortifruti":
+        return "bg-emerald-600 text-white";
+      case "Padaria & Snacks":
+        return "bg-orange-600 text-white";
+      case "Carnes & Frios":
+        return "bg-rose-600 text-white";
+      default:
+        return "bg-slate-700 text-white";
+    }
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -209,6 +249,27 @@ const ShoppingList = () => {
           >
             <Plus size={24} />
           </Button>
+        </div>
+
+        {/* Filtros de Categoria com Rolagem Horizontal */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
+          {categories.map((category) => {
+            const isActive = selectedCategory === category;
+            return (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={cn(
+                  "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all active:scale-95 border",
+                  isActive 
+                    ? getFilterActiveStyle(category)
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-800 hover:bg-slate-50"
+                )}
+              >
+                {category}
+              </button>
+            );
+          })}
         </div>
 
         {/* Lista de Itens Agrupados */}
@@ -311,7 +372,7 @@ const ShoppingList = () => {
           {filteredItems.length === 0 && (
             <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
               <ShoppingCart className="mx-auto text-slate-300 dark:text-slate-700 mb-3" size={40} />
-              <p className="text-slate-400 italic text-sm">Sua lista de compras está vazia</p>
+              <p className="text-slate-400 italic text-sm">Nenhum item encontrado nesta categoria</p>
               <p className="text-xs text-slate-400 mt-1">Toque no microfone ou no botão + para adicionar</p>
             </div>
           )}
