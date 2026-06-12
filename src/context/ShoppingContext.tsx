@@ -17,7 +17,6 @@ interface ShoppingContextType {
 
 const ShoppingContext = createContext<ShoppingContextType | undefined>(undefined);
 
-// Chave para salvar as categorias localmente caso a coluna não exista no Supabase
 const LOCAL_CATEGORIES_KEY = 'shopping_item_categories';
 
 export const ShoppingProvider = ({ children }: { children: React.ReactNode }) => {
@@ -75,7 +74,7 @@ export const ShoppingProvider = ({ children }: { children: React.ReactNode }) =>
 
   const addItem = async (newItem: Omit<ShoppingItem, 'id' | 'checked'>) => {
     try {
-      // 1. Tenta salvar com a coluna 'category'
+      // Tenta salvar com a coluna 'category'
       const { data, error } = await supabase
         .from('shopping_list')
         .insert([{
@@ -88,40 +87,39 @@ export const ShoppingProvider = ({ children }: { children: React.ReactNode }) =>
         .select();
 
       if (error) {
-        // Se o erro for de coluna inexistente (código 42703 ou mensagem contendo 'category'), tenta sem a coluna
-        if (error.code === '42703' || error.message?.includes('category')) {
-          console.warn("Coluna 'category' não existe no banco. Salvando localmente.");
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('shopping_list')
-            .insert([{
-              name: newItem.name,
-              quantity: newItem.quantity,
-              price: newItem.price,
-              checked: false
-            }])
-            .select();
+        console.warn("Coluna 'category' falhou no banco. Ativando Plano B (salvar sem a coluna):", error);
+        
+        // Plano B: Salva sem enviar a coluna 'category'
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('shopping_list')
+          .insert([{
+            name: newItem.name,
+            quantity: newItem.quantity,
+            price: newItem.price,
+            checked: false
+          }])
+          .select();
 
-          if (fallbackError) throw fallbackError;
-          if (fallbackData && fallbackData[0]) {
-            const createdItem = fallbackData[0];
-            if (newItem.category) {
-              saveLocalCategory(createdItem.id, newItem.category);
-            }
-            const mapped = {
-              id: createdItem.id,
-              created_at: createdItem.created_at,
-              name: createdItem.name,
-              quantity: createdItem.quantity || 1,
-              checked: createdItem.checked || false,
-              price: parseFloat(createdItem.price || 0),
-              category: newItem.category
-            };
-            setItems(prev => [...prev, mapped]);
-            showSuccess(`"${newItem.name}" adicionado à lista!`);
+        if (fallbackError) throw fallbackError;
+        
+        if (fallbackData && fallbackData[0]) {
+          const createdItem = fallbackData[0];
+          if (newItem.category) {
+            saveLocalCategory(createdItem.id, newItem.category);
           }
-          return;
+          const mapped = {
+            id: createdItem.id,
+            created_at: createdItem.created_at,
+            name: createdItem.name,
+            quantity: createdItem.quantity || 1,
+            checked: createdItem.checked || false,
+            price: parseFloat(createdItem.price || 0),
+            category: newItem.category
+          };
+          setItems(prev => [...prev, mapped]);
+          showSuccess(`"${newItem.name}" adicionado à lista!`);
         }
-        throw error;
+        return;
       }
 
       if (data && data[0]) {
@@ -159,23 +157,24 @@ export const ShoppingProvider = ({ children }: { children: React.ReactNode }) =>
         .eq('id', id);
 
       if (error) {
-        // Se falhar por causa da coluna 'category', atualiza sem ela e salva localmente
-        if (error.code === '42703' || error.message?.includes('category')) {
-          delete formattedUpdates.category;
-          const { error: fallbackError } = await supabase
-            .from('shopping_list')
-            .update(formattedUpdates)
-            .eq('id', id);
+        console.warn("Atualização com 'category' falhou. Ativando Plano B (atualizar sem a coluna):", error);
+        
+        // Remove a categoria do envio para o banco
+        delete formattedUpdates.category;
+        
+        const { error: fallbackError } = await supabase
+          .from('shopping_list')
+          .update(formattedUpdates)
+          .eq('id', id);
 
-          if (fallbackError) throw fallbackError;
-          if (updates.category) {
-            saveLocalCategory(id, updates.category);
-          }
-          setItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-          showSuccess("Item atualizado!");
-          return;
+        if (fallbackError) throw fallbackError;
+        
+        if (updates.category) {
+          saveLocalCategory(id, updates.category);
         }
-        throw error;
+        setItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+        showSuccess("Item atualizado!");
+        return;
       }
 
       if (updates.category) {
