@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, Moon, Sun, SendHorizontal, CreditCard, Server } from 'lucide-react';
+import { Home, Settings, Moon, Sun, SendHorizontal, CreditCard, Server, ShoppingBag } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/SettingsContext';
 
@@ -14,6 +14,7 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
     { icon: Home, label: 'Início', path: '/' },
     { icon: SendHorizontal, label: 'PIX', path: '/pix' },
     { icon: CreditCard, label: 'Cartão', path: '/cards' },
+    { icon: ShoppingBag, label: 'Lista', path: '/lista' },
     { icon: Server, label: 'Lider', path: '/lider' },
     { icon: Settings, label: 'Ajustes', path: '/settings' },
   ];
