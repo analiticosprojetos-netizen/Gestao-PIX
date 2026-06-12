@@ -46,8 +46,9 @@ const ShoppingList = () => {
   // Filtra os itens por busca de texto e pela categoria selecionada
   const filteredItems = useMemo(() => {
     return items.filter(item => {
+      const itemCategory = item.category || getItemCategory(item.name);
       const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = selectedCategory === 'Todos' || getItemCategory(item.name) === selectedCategory;
+      const matchesCategory = selectedCategory === 'Todos' || itemCategory === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [items, search, selectedCategory]);
@@ -57,7 +58,7 @@ const ShoppingList = () => {
     const groups: Record<string, typeof items> = {};
     
     filteredItems.forEach(item => {
-      const category = getItemCategory(item.name);
+      const category = item.category || getItemCategory(item.name);
       if (!groups[category]) {
         groups[category] = [];
       }

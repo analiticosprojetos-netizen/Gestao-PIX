@@ -7,4 +7,5 @@ export interface ShoppingItem {
   quantity: number;
   checked: boolean;
   price: number;
+  category?: string;
 }
