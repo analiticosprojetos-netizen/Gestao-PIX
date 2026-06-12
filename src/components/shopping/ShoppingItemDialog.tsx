@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Sparkles } from 'lucide-react';
 import { ShoppingItem } from '@/types/shopping';
-import { getEstimatedPrice } from '@/utils/priceEstimator';
+import { getEstimatedPrice, getItemCategory } from '@/utils/priceEstimator';
 
 interface ShoppingItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { name: string; quantity: number; price: number }) => void;
+  onSubmit: (data: { name: string; quantity: number; price: number; category: string }) => void;
   item?: ShoppingItem | null;
 }
 
@@ -20,34 +20,53 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
   const [formData, setFormData] = useState({
     name: '',
     quantity: '1',
-    price: ''
+    price: '',
+    category: 'Mercearia'
   });
   const [suggestedPrice, setSuggestedPrice] = useState<number>(0);
+
+  const categories = [
+    'Higiene Pessoal',
+    'Limpeza',
+    'Bebidas',
+    'Hortifruti',
+    'Padaria & Snacks',
+    'Carnes & Frios',
+    'Mercearia'
+  ];
 
   useEffect(() => {
     if (item && open) {
       setFormData({
         name: item.name,
         quantity: item.quantity.toString(),
-        price: item.price > 0 ? item.price.toString() : ''
+        price: item.price > 0 ? item.price.toString() : '',
+        category: item.category || getItemCategory(item.name)
       });
       setSuggestedPrice(0);
     } else if (open) {
       setFormData({
         name: '',
         quantity: '1',
-        price: ''
+        price: '',
+        category: 'Mercearia'
       });
       setSuggestedPrice(0);
     }
   }, [item, open]);
 
-  // Monitora a mudança de nome para sugerir o preço médio
+  // Monitora a mudança de nome para sugerir o preço médio e a categoria automaticamente
   useEffect(() => {
     if (!item && formData.name.trim().length > 2) {
       const estimate = getEstimatedPrice(formData.name);
+      const detectedCategory = getItemCategory(formData.name);
+      
       setSuggestedPrice(estimate);
-    } else {
+      setFormData(prev => ({
+        ...prev,
+        category: detectedCategory
+      }));
+    } else if (!item && formData.name.trim().length <= 2) {
       setSuggestedPrice(0);
     }
   }, [formData.name, item]);
@@ -69,7 +88,8 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
     onSubmit({
       name: formData.name.trim(),
       quantity: parseInt(formData.quantity) || 1,
-      price: parseFloat(formData.price) || 0
+      price: parseFloat(formData.price) || 0,
+      category: formData.category
     });
 
     onOpenChange(false);
@@ -121,6 +141,21 @@ const ShoppingItemDialog = ({ open, onOpenChange, onSubmit, item }: ShoppingItem
               <span className="bg-indigo-600 text-white px-2 py-1 rounded-lg text-[10px]">Usar</span>
             </button>
           )}
+
+          <div className="space-y-1">
+            <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Categoria</Label>
+            <select 
+              value={formData.category} 
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              className="w-full h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none px-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-100"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
