@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
@@ -58,9 +58,29 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
   // Ordenação: Mais novo (data maior) para o mais antigo (data menor)
   const history = [...personTransfers, ...personInstallments].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  const totalBalance = history.reduce((acc, item) => {
-    return item.type === 'credit' ? acc + item.amount : acc - item.amount;
-  }, 0);
+  // Cálculo do saldo total idêntico ao da página inicial (apenas transferências concluídas e parcelas pendentes)
+  const totalBalance = useMemo(() => {
+    let balance = 0;
+    
+    // Soma transferências concluídas
+    transfers
+      .filter(t => t.friend_name === personName && t.status === 'completed')
+      .forEach(t => {
+        balance += t.type === 'in' ? t.amount : -t.amount;
+      });
+
+    // Subtrai apenas parcelas pendentes de cartão
+    installments
+      .filter(inst => {
+        const tx = transactions.find(t => t.id === inst.transaction_id);
+        return tx?.recipient_name === personName && inst.status === 'pending';
+      })
+      .forEach(inst => {
+        balance -= inst.amount;
+      });
+
+    return balance;
+  }, [transfers, installments, transactions, personName]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

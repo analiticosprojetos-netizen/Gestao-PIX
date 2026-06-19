@@ -88,12 +88,14 @@ const Index = () => {
     const balances: Record<string, number> = {};
     settings.contacts.forEach(name => { balances[name] = 0; });
 
-    transfers.forEach(t => {
+    // Apenas transferências concluídas afetam o saldo ativo
+    transfers.filter(t => t.status === 'completed').forEach(t => {
       const amount = t.type === 'in' ? t.amount : -t.amount;
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    installments.forEach(inst => {
+    // APENAS parcelas PENDENTES de cartão entram como dívida ativa da pessoa
+    installments.filter(i => i.status === 'pending').forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
         balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
