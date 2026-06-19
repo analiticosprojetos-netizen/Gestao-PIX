@@ -94,8 +94,9 @@ const Index = () => {
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // APENAS parcelas PENDENTES de cartão entram como dívida ativa da pessoa
-    installments.filter(i => i.status === 'pending').forEach(inst => {
+    // Todas as parcelas de cartão (tanto pendentes quanto pagas) entram como débito histórico da pessoa
+    // para que sejam compensadas pelas transferências de pagamento (PIX) recebidas.
+    installments.forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
         balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
@@ -210,6 +211,11 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+            {peopleWithBalance.length === 0 && (
+              <div className="text-center py-8 text-slate-400 italic text-sm bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                Tudo quitado! Ninguém deve nada a ninguém.
+              </div>
+            )}
           </div>
         </section>
 

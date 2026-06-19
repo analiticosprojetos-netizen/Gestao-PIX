@@ -58,7 +58,7 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
   // Ordenação: Mais novo (data maior) para o mais antigo (data menor)
   const history = [...personTransfers, ...personInstallments].sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  // Cálculo do saldo total idêntico ao da página inicial (apenas transferências concluídas e parcelas pendentes)
+  // Cálculo do saldo total idêntico ao da página inicial (todas as transferências concluídas e todas as parcelas)
   const totalBalance = useMemo(() => {
     let balance = 0;
     
@@ -69,11 +69,11 @@ const PersonHistoryDrawer = ({ personName, open, onOpenChange }: PersonHistoryDr
         balance += t.type === 'in' ? t.amount : -t.amount;
       });
 
-    // Subtrai apenas parcelas pendentes de cartão
+    // Subtrai todas as parcelas de cartão (tanto pendentes quanto pagas)
     installments
       .filter(inst => {
         const tx = transactions.find(t => t.id === inst.transaction_id);
-        return tx?.recipient_name === personName && inst.status === 'pending';
+        return tx?.recipient_name === personName;
       })
       .forEach(inst => {
         balance -= inst.amount;
