@@ -94,9 +94,8 @@ const Index = () => {
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // Todas as parcelas de cartão (tanto pendentes quanto pagas) entram como débito histórico da pessoa
-    // para que sejam compensadas pelas transferências de pagamento (PIX) recebidas.
-    installments.forEach(inst => {
+    // APENAS as parcelas PENDENTES de cartão entram como débito da pessoa
+    installments.filter(i => i.status === 'pending').forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
         balances[tx.recipient_name] = (balances[tx.recipient_name] || 0) - inst.amount;
