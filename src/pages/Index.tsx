@@ -37,15 +37,26 @@ const Index = () => {
     };
   }, [transfers]);
 
-  // Total de parcelas de cartão pendentes
-  const totalPendingCards = useMemo(() => {
-    return installments
+  // Totais do Cartão de Crédito (Pagos e Pendentes)
+  const cardTotals = useMemo(() => {
+    const paid = installments
+      .filter(i => i.status === 'paid')
+      .reduce((acc, i) => acc + i.amount, 0);
+
+    const pending = installments
       .filter(i => i.status === 'pending')
       .reduce((acc, i) => acc + i.amount, 0);
+
+    return { 
+      paid, 
+      pending, 
+      total: paid + pending 
+    };
   }, [installments]);
 
-  // Saldo Líquido Real = (Entradas PIX - Saídas PIX) - Cartão Pendente
-  const netBalance = pixBalance.balance - totalPendingCards;
+  // Saldo Líquido Real = (Entradas PIX - Saídas PIX) - Total do Cartão
+  // Como o PIX que entra paga as despesas do cartão, o saldo final disponível zera.
+  const netBalance = pixBalance.balance - cardTotals.total;
 
   const activeInvoice = useMemo(() => {
     const pendingInstallments = installments.filter(i => i.status === 'pending');
@@ -96,7 +107,7 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Painel de Saldo com Saldo Líquido em Destaque Principal */}
+        {/* Painel de Saldo com Saldo Líquido Real em Destaque */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="flex justify-between items-start relative z-10">
@@ -104,7 +115,7 @@ const Index = () => {
               <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Saldo Líquido Disponível</p>
               <h2 className="text-4xl font-black mt-1">R$ {formatCurrency(netBalance)}</h2>
               <p className="text-[11px] text-indigo-200 mt-1 font-medium">
-                (PIX em conta - faturas pendentes de cartão)
+                (Entradas PIX - Saídas PIX - Despesas de Cartão)
               </p>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
@@ -132,9 +143,9 @@ const Index = () => {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <div className="p-1 bg-amber-500/20 rounded-lg"><CreditCard size={12} className="text-amber-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">A Pagar Cartão</p>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Total Cartão</p>
               </div>
-              <p className="text-xs font-bold text-amber-200">-R$ {formatCurrency(totalPendingCards)}</p>
+              <p className="text-xs font-bold text-amber-200">-R$ {formatCurrency(cardTotals.total)}</p>
             </div>
           </div>
         </section>
