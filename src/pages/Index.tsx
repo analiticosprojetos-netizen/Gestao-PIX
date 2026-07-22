@@ -22,7 +22,7 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Calcula Entradas e Saídas considerando a diferença gasta no cartão
+  // Calcula Entradas e Saídas considerando parcelas de cartão APENAS QUANDO PAGAS
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
@@ -30,22 +30,18 @@ const Index = () => {
     const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
     const pixOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
-    // Soma das parcelas de cartão marcadas como pagas
+    // Soma APENAS das parcelas de cartão que foram marcadas como PAGAS
     const paidCardAmount = installments
       .filter(i => i.status === 'paid')
       .reduce((acc, i) => acc + i.amount, 0);
 
-    // A diferença entre a entrada e a saída PIX foi usada para pagar o cartão
-    const cardDifferencePaid = paidCardAmount > 0 
-      ? paidCardAmount 
-      : Math.max(0, totalIn - pixOut);
-
-    const totalOut = pixOut + cardDifferencePaid;
+    const totalOut = pixOut + paidCardAmount;
+    const balance = totalIn - totalOut;
 
     return { 
       totalIn, 
       totalOut, 
-      balance: Math.max(0, totalIn - totalOut) // Resulta em 0,00 quando a diferença quitou o cartão
+      balance
     };
   }, [transfers, installments]);
 
@@ -105,7 +101,7 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Painel de Saldo zerado */}
+        {/* Painel de Saldo */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="flex justify-between items-start relative z-10">
