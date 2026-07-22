@@ -22,26 +22,15 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Cálculo financeiro principal:
-  // - Entradas: Apenas PIX Recebidos
-  // - Saídas: PIX Enviados + Parcelas do Cartão que já foram PAGAS
-  // - Saldo em Conta: Entradas - Saídas
+  // Cálculo do Saldo em Conta exclusivamente por movimentações de PIX
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
 
     const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-    const pixOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
-    // Soma APENAS das parcelas de cartão marcadas como PAGAS
-    const paidCardAmount = installments
-      .filter(i => i.status === 'paid')
-      .reduce((acc, i) => acc + i.amount, 0);
-
-    // Saídas totais (PIX Enviados + Cartão Pago)
-    const totalOut = pixOut + paidCardAmount;
-    
-    // Saldo real em conta (Entradas menos todas as Saídas efetivadas)
+    // Saldo em conta é estritamente Entradas PIX - Saídas PIX
     const balance = totalIn - totalOut;
 
     return { 
@@ -49,7 +38,7 @@ const Index = () => {
       totalOut, 
       balance
     };
-  }, [transfers, installments]);
+  }, [transfers]);
 
   // Total do Cartão de Crédito em Aberto (Pendentes)
   const totalPendingCards = useMemo(() => {
