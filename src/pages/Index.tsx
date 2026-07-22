@@ -12,7 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format, parseISO, endOfMonth, isBefore } from 'date-fns';
+import { format, parseISO, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
@@ -23,21 +23,24 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
+  // Calcula apenas transferências PENDENTES para o saldo PIX ativo
   const pixBalance = useMemo(() => {
-    const completedTransfers = transfers.filter(t => t.status === 'completed');
-    const totalIn = completedTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-    const totalOut = completedTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
-    
-    const totalPaidCards = installments
-      .filter(i => i.status === 'paid')
-      .reduce((acc, i) => acc + i.amount, 0);
+    const pendingTransfers = transfers.filter(t => t.status === 'pending');
+    const totalIn = pendingTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = pendingTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
     return { 
       totalIn, 
-      totalOut: totalOut + totalPaidCards, 
-      balance: totalIn - totalOut - totalPaidCards 
+      totalOut, 
+      balance: totalIn - totalOut 
     };
-  }, [transfers, installments]);
+  }, [transfers]);
+
+  const totalPendingCards = useMemo(() => {
+    return installments
+      .filter(i => i.status === 'pending')
+      .reduce((acc, i) => acc + i.amount, 0);
+  }, [installments]);
 
   const activeInvoice = useMemo(() => {
     const pendingInstallments = installments.filter(i => i.status === 'pending');
@@ -49,9 +52,6 @@ const Index = () => {
     const sortedPending = [...pendingInstallments].sort((a, b) => a.due_date.localeCompare(b.due_date));
     const firstPendingDate = parseISO(sortedPending[0].due_date);
     
-    const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
-    const endOfTargetMonth = endOfMonth(firstPendingDate);
-    
     const totalAbsolutePending = pendingInstallments.reduce((acc, i) => acc + i.amount, 0);
 
     return { 
@@ -62,13 +62,7 @@ const Index = () => {
     };
   }, [installments, settings.cardClosingDay]);
 
-  const totalPendingCards = useMemo(() => {
-    return installments
-      .filter(i => i.status === 'pending')
-      .reduce((acc, i) => acc + i.amount, 0);
-  }, [installments]);
-
-  const netBalance = pixBalance.balance - activeInvoice.pending;
+  const netBalance = pixBalance.balance - totalPendingCards;
 
   // Calcula pendências ativas por pessoa (apenas itens PENDENTES)
   const peopleWithBalance = useMemo(() => {
