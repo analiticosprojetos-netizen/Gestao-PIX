@@ -22,22 +22,29 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Calcula Entradas e Saídas PIX
+  // Calcula Entradas e Saídas (PIX + Parcelas de Cartão Pagas)
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
 
     const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-    const totalOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+    const pixOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+
+    // Soma das parcelas do cartão que foram PAGAS
+    const paidCardAmount = installments
+      .filter(i => i.status === 'paid')
+      .reduce((acc, i) => acc + i.amount, 0);
+
+    const totalOut = pixOut + paidCardAmount;
 
     return { 
       totalIn, 
       totalOut, 
-      balance: 0 // Saldo mantido zerado conforme solicitado
+      balance: 0 // Saldo zerado
     };
-  }, [transfers]);
+  }, [transfers, installments]);
 
-  // Total do Cartão de Crédito em Aberto
+  // Total do Cartão de Crédito em Aberto (Pendentes)
   const totalPendingCards = useMemo(() => {
     return installments
       .filter(i => i.status === 'pending')
