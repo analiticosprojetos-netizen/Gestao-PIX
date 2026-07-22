@@ -22,7 +22,8 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Calcula Entradas e Saídas considerando parcelas de cartão APENAS QUANDO PAGAS
+  // Saldo em Conta = Pureamente PIX (Entradas PIX - Saídas PIX)
+  // Saídas = Saídas PIX + Parcelas de Cartão Pagas
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
@@ -30,13 +31,16 @@ const Index = () => {
     const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
     const pixOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
-    // Soma APENAS das parcelas de cartão que foram marcadas como PAGAS
+    // Soma apenas das parcelas de cartão que foram PAGAS
     const paidCardAmount = installments
       .filter(i => i.status === 'paid')
       .reduce((acc, i) => acc + i.amount, 0);
 
+    // Saídas incluem as Saídas PIX + o Cartão Pago
     const totalOut = pixOut + paidCardAmount;
-    const balance = totalIn - totalOut;
+    
+    // Saldo em conta é mantido puramente pelas transações de conta (Entradas - Saídas PIX)
+    const balance = totalIn - pixOut;
 
     return { 
       totalIn, 
