@@ -23,8 +23,9 @@ const Index = () => {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
   // Cálculo financeiro principal:
-  // - Saldo em Conta: Estritamente (Entradas PIX - Saídas PIX)
-  // - Saídas: Saídas PIX + Parcelas do Cartão que já foram PAGAS
+  // - Entradas: Apenas PIX Recebidos
+  // - Saídas: PIX Enviados + Parcelas do Cartão que já foram PAGAS
+  // - Saldo em Conta: Entradas - Saídas
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
@@ -37,11 +38,11 @@ const Index = () => {
       .filter(i => i.status === 'paid')
       .reduce((acc, i) => acc + i.amount, 0);
 
-    // O indicador "Saídas" soma as Saídas PIX + o Cartão Pago
+    // Saídas totais (PIX Enviados + Cartão Pago)
     const totalOut = pixOut + paidCardAmount;
     
-    // Saldo em conta é EXCLUSIVAMENTE movimentação de conta (PIX)
-    const balance = totalIn - pixOut;
+    // Saldo real em conta (Entradas menos todas as Saídas efetivadas)
+    const balance = totalIn - totalOut;
 
     return { 
       totalIn, 
