@@ -12,8 +12,7 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format, parseISO, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -23,11 +22,14 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Calcula apenas transferências PENDENTES para o saldo PIX ativo
+  // Calcula Entradas e Saídas PIX (considerando movimentações concluídas / ativas)
   const pixBalance = useMemo(() => {
-    const pendingTransfers = transfers.filter(t => t.status === 'pending');
-    const totalIn = pendingTransfers.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
-    const totalOut = pendingTransfers.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+    // Por padrão no cadastro de PIX o status é 'completed'
+    const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
+    const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
+
+    const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
     return { 
       totalIn, 
@@ -36,6 +38,7 @@ const Index = () => {
     };
   }, [transfers]);
 
+  // Total de parcelas de cartão pendentes
   const totalPendingCards = useMemo(() => {
     return installments
       .filter(i => i.status === 'pending')
