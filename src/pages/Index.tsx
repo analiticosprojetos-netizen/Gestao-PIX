@@ -22,9 +22,8 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Calcula Entradas e Saídas PIX (considerando movimentações concluídas / ativas)
+  // Calcula Entradas e Saídas PIX
   const pixBalance = useMemo(() => {
-    // Por padrão no cadastro de PIX o status é 'completed'
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
 
@@ -44,6 +43,9 @@ const Index = () => {
       .filter(i => i.status === 'pending')
       .reduce((acc, i) => acc + i.amount, 0);
   }, [installments]);
+
+  // Saldo Líquido Real = (Entradas PIX - Saídas PIX) - Cartão Pendente
+  const netBalance = pixBalance.balance - totalPendingCards;
 
   const activeInvoice = useMemo(() => {
     const pendingInstallments = installments.filter(i => i.status === 'pending');
@@ -65,20 +67,16 @@ const Index = () => {
     };
   }, [installments, settings.cardClosingDay]);
 
-  const netBalance = pixBalance.balance - totalPendingCards;
-
   // Calcula pendências ativas por pessoa (apenas itens PENDENTES)
   const peopleWithBalance = useMemo(() => {
     const balances: Record<string, number> = {};
     settings.contacts.forEach(name => { balances[name] = 0; });
 
-    // Apenas transferências PENDENTES afetam o saldo devedor/a receber da pessoa
     transfers.filter(t => t.status === 'pending').forEach(t => {
       const amount = t.type === 'in' ? t.amount : -t.amount;
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // APENAS parcelas PENDENTES de cartão entram como débito pendente da pessoa
     installments.filter(i => i.status === 'pending').forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
@@ -98,18 +96,16 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
+        {/* Painel de Saldo com Saldo Líquido em Destaque Principal */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <p className="text-indigo-100 text-xs font-medium uppercase tracking-wider">Saldo em Conta (PIX)</p>
-              <h2 className="text-4xl font-bold mt-1">R$ {formatCurrency(pixBalance.balance)}</h2>
-              <div className="mt-3 flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
-                <Calculator size={14} className="text-indigo-200" />
-                <p className="text-[11px] font-medium text-indigo-50">
-                  Líquido: <span className="font-bold">R$ {formatCurrency(netBalance)}</span>
-                </p>
-              </div>
+              <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Saldo Líquido Disponível</p>
+              <h2 className="text-4xl font-black mt-1">R$ {formatCurrency(netBalance)}</h2>
+              <p className="text-[11px] text-indigo-200 mt-1 font-medium">
+                (PIX em conta - faturas pendentes de cartão)
+              </p>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
               <Wallet size={28} />
@@ -118,27 +114,27 @@ const Index = () => {
           
           <div className="grid grid-cols-3 gap-2 mt-8 pt-6 border-t border-white/10 relative z-10">
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-emerald-500/20 rounded-lg"><ArrowDownLeft size={14} className="text-emerald-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">Entradas</p>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 bg-emerald-500/20 rounded-md"><ArrowDownLeft size={12} className="text-emerald-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Entradas PIX</p>
               </div>
-              <p className="text-xs font-bold">R$ {formatCurrency(pixBalance.totalIn)}</p>
+              <p className="text-xs font-bold text-emerald-300">+R$ {formatCurrency(pixBalance.totalIn)}</p>
             </div>
             
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-rose-500/20 rounded-lg"><ArrowUpRight size={14} className="text-rose-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">Saídas</p>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 bg-rose-500/20 rounded-lg"><ArrowUpRight size={12} className="text-rose-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Saídas PIX</p>
               </div>
-              <p className="text-xs font-bold">R$ {formatCurrency(pixBalance.totalOut)}</p>
+              <p className="text-xs font-bold text-rose-200">-R$ {formatCurrency(pixBalance.totalOut)}</p>
             </div>
 
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-rose-500/20 rounded-lg"><CreditCard size={14} className="text-rose-300" /></div>
-                <p className="text-[9px] text-rose-100 uppercase font-bold">Cartão</p>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 bg-amber-500/20 rounded-lg"><CreditCard size={12} className="text-amber-300" /></div>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">A Pagar Cartão</p>
               </div>
-              <p className="text-xs font-bold text-rose-200">R$ {formatCurrency(totalPendingCards)}</p>
+              <p className="text-xs font-bold text-amber-200">-R$ {formatCurrency(totalPendingCards)}</p>
             </div>
           </div>
         </section>
