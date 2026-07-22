@@ -22,7 +22,7 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
 
-  // Cálculo do Saldo em Conta exclusivamente por movimentações de PIX
+  // Calcula Entradas e Saídas PIX
   const pixBalance = useMemo(() => {
     const completedTransfers = transfers.filter(t => t.status === 'completed' || !t.status);
     const listToUse = completedTransfers.length > 0 ? completedTransfers : transfers;
@@ -30,17 +30,14 @@ const Index = () => {
     const totalIn = listToUse.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
     const totalOut = listToUse.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
 
-    // Saldo em conta é estritamente Entradas PIX - Saídas PIX
-    const balance = totalIn - totalOut;
-
     return { 
       totalIn, 
       totalOut, 
-      balance
+      balance: 0 // Saldo mantido zerado conforme solicitado
     };
   }, [transfers]);
 
-  // Total do Cartão de Crédito em Aberto (Pendentes)
+  // Total do Cartão de Crédito em Aberto
   const totalPendingCards = useMemo(() => {
     return installments
       .filter(i => i.status === 'pending')
@@ -96,13 +93,13 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Painel de Saldo */}
+        {/* Painel de Saldo com Saldo zerado */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Saldo em Conta (PIX)</p>
-              <h2 className="text-4xl font-black mt-1">R$ {formatCurrency(pixBalance.balance)}</h2>
+              <h2 className="text-4xl font-black mt-1">R$ 0,00</h2>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
               <Wallet size={28} />
