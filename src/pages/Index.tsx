@@ -12,12 +12,11 @@ import { useTransfers } from '@/context/TransferContext';
 import { useCards } from '@/context/CardContext';
 import { useSettings } from '@/context/SettingsContext';
 import { cn } from "@/lib/utils";
-import { format, parseISO, startOfMonth, endOfMonth, isBefore } from 'date-fns';
+import { format, parseISO, endOfMonth, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const navigate = useNavigate();
   const { transfers, addTransfer } = useTransfers();
   const { installments, transactions } = useCards();
   const { settings } = useSettings();
@@ -47,29 +46,16 @@ const Index = () => {
       return { total: 0, pending: 0, monthName: 'Atual', dueDate: settings.cardClosingDay + 7 };
     }
 
-    // Ordena para pegar a data mais antiga pendente
     const sortedPending = [...pendingInstallments].sort((a, b) => a.due_date.localeCompare(b.due_date));
     const firstPendingDate = parseISO(sortedPending[0].due_date);
     
-    // Definimos o "mês da fatura" como o mês desse primeiro vencimento
     const monthName = format(firstPendingDate, 'MMMM', { locale: ptBR });
-    
-    // Para trazer o valor correto (7238,93), vamos somar TODAS as parcelas pendentes 
-    // que vencem até o final do mês dessa fatura atual.
     const endOfTargetMonth = endOfMonth(firstPendingDate);
     
-    const currentMonthInstallments = pendingInstallments.filter(i => {
-      const d = parseISO(i.due_date);
-      return isBefore(d, endOfTargetMonth) || d.getTime() === endOfTargetMonth.getTime();
-    });
-
-    const pending = currentMonthInstallments.reduce((acc, i) => acc + i.amount, 0);
-    
-    // Se o usuário quer ver o total absoluto de tudo que está em aberto (como no print):
     const totalAbsolutePending = pendingInstallments.reduce((acc, i) => acc + i.amount, 0);
 
     return { 
-      total: totalAbsolutePending, // Mostra o total geral pendente
+      total: totalAbsolutePending, 
       pending: totalAbsolutePending, 
       monthName: "Total em Aberto", 
       dueDate: firstPendingDate.getDate() 
@@ -84,17 +70,18 @@ const Index = () => {
 
   const netBalance = pixBalance.balance - activeInvoice.pending;
 
+  // Calcula pendências ativas por pessoa (apenas itens PENDENTES)
   const peopleWithBalance = useMemo(() => {
     const balances: Record<string, number> = {};
     settings.contacts.forEach(name => { balances[name] = 0; });
 
-    // Apenas transferências concluídas afetam o saldo ativo
-    transfers.filter(t => t.status === 'completed').forEach(t => {
+    // Apenas transferências PENDENTES afetam o saldo devedor/a receber da pessoa
+    transfers.filter(t => t.status === 'pending').forEach(t => {
       const amount = t.type === 'in' ? t.amount : -t.amount;
       balances[t.friend_name] = (balances[t.friend_name] || 0) + amount;
     });
 
-    // APENAS as parcelas PENDENTES de cartão entram como débito da pessoa
+    // APENAS parcelas PENDENTES de cartão entram como débito pendente da pessoa
     installments.filter(i => i.status === 'pending').forEach(inst => {
       const tx = transactions.find(t => t.id === inst.transaction_id);
       if (tx && tx.recipient_name) {
