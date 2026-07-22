@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, Moon, Sun, SendHorizontal, CreditCard, Server, ShoppingCart } from 'lucide-react';
+import { Home, Settings, Moon, Sun, SendHorizontal, CreditCard, Server, ShoppingCart, History } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/context/SettingsContext';
 
@@ -22,13 +22,29 @@ const AppShell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-6 py-4 sticky top-0 z-50 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">Gestão PIX</h1>
-        <button 
-          onClick={toggleTheme}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-all hover:scale-110 active:scale-95"
-        >
-          {settings.theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+        <Link to="/" className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+          Gestão PIX
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link 
+            to="/historico"
+            className={cn(
+              "p-2 rounded-xl transition-all hover:scale-110 active:scale-95",
+              location.pathname === '/historico' 
+                ? "bg-indigo-600 text-white" 
+                : "bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400"
+            )}
+            title="Extrato e Histórico Geral"
+          >
+            <History size={20} />
+          </Link>
+          <button 
+            onClick={toggleTheme}
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-all hover:scale-110 active:scale-95"
+          >
+            {settings.theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-4 max-w-md mx-auto w-full">

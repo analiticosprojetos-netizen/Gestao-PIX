@@ -16,6 +16,7 @@ import Lider from "./pages/Lider";
 import Settings from "./pages/Settings";
 import Bills from "./pages/Bills";
 import ShoppingList from "./pages/ShoppingList";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       <Route path="/pix" element={<Transfers />} />
                       <Route path="/cards" element={<Cards />} />
+                      <Route path="/historico" element={<History />} />
                       <Route path="/lider" element={<Lider />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/boletos" element={<Bills />} />

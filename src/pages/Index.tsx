@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -139,6 +139,23 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        {/* Atalho para o Extrato Geral */}
+        <Link 
+          to="/historico"
+          className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 shadow-sm active:scale-[0.98] transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 rounded-xl">
+              <History size={20} />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-slate-800 dark:text-slate-100">Ver Extrato Completo</p>
+              <p className="text-xs text-slate-500">Histórico de PIX, Cartões e Boletos</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-indigo-600">Abrir &rarr;</span>
+        </Link>
 
         <Link 
           to="/cards"
