@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, Calculator, History } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Users, Plus, CreditCard, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TransferDialog from '@/components/transfers/TransferDialog';
 import PersonHistoryDrawer from '@/components/people/PersonHistoryDrawer';
@@ -33,30 +33,16 @@ const Index = () => {
     return { 
       totalIn, 
       totalOut, 
-      balance: totalIn - totalOut 
+      balance: 0 // Saldo mantido zerado conforme solicitado
     };
   }, [transfers]);
 
-  // Totais do Cartão de Crédito (Pagos e Pendentes)
-  const cardTotals = useMemo(() => {
-    const paid = installments
-      .filter(i => i.status === 'paid')
-      .reduce((acc, i) => acc + i.amount, 0);
-
-    const pending = installments
+  // Total do Cartão de Crédito em Aberto
+  const totalPendingCards = useMemo(() => {
+    return installments
       .filter(i => i.status === 'pending')
       .reduce((acc, i) => acc + i.amount, 0);
-
-    return { 
-      paid, 
-      pending, 
-      total: paid + pending 
-    };
   }, [installments]);
-
-  // Saldo Líquido Real = (Entradas PIX - Saídas PIX) - Total do Cartão
-  // Como o PIX que entra paga as despesas do cartão, o saldo final disponível zera.
-  const netBalance = pixBalance.balance - cardTotals.total;
 
   const activeInvoice = useMemo(() => {
     const pendingInstallments = installments.filter(i => i.status === 'pending');
@@ -107,16 +93,13 @@ const Index = () => {
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Painel de Saldo com Saldo Líquido Real em Destaque */}
+        {/* Painel de Saldo com Saldo zerado */}
         <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Saldo Líquido Disponível</p>
-              <h2 className="text-4xl font-black mt-1">R$ {formatCurrency(netBalance)}</h2>
-              <p className="text-[11px] text-indigo-200 mt-1 font-medium">
-                (Entradas PIX - Saídas PIX - Despesas de Cartão)
-              </p>
+              <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Saldo em Conta (PIX)</p>
+              <h2 className="text-4xl font-black mt-1">R$ 0,00</h2>
             </div>
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
               <Wallet size={28} />
@@ -127,7 +110,7 @@ const Index = () => {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <div className="p-1 bg-emerald-500/20 rounded-md"><ArrowDownLeft size={12} className="text-emerald-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">Entradas PIX</p>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Entradas</p>
               </div>
               <p className="text-xs font-bold text-emerald-300">+R$ {formatCurrency(pixBalance.totalIn)}</p>
             </div>
@@ -135,7 +118,7 @@ const Index = () => {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <div className="p-1 bg-rose-500/20 rounded-lg"><ArrowUpRight size={12} className="text-rose-300" /></div>
-                <p className="text-[9px] text-indigo-100 uppercase font-bold">Saídas PIX</p>
+                <p className="text-[9px] text-indigo-100 uppercase font-bold">Saídas</p>
               </div>
               <p className="text-xs font-bold text-rose-200">-R$ {formatCurrency(pixBalance.totalOut)}</p>
             </div>
@@ -145,7 +128,7 @@ const Index = () => {
                 <div className="p-1 bg-amber-500/20 rounded-lg"><CreditCard size={12} className="text-amber-300" /></div>
                 <p className="text-[9px] text-indigo-100 uppercase font-bold">Total Cartão</p>
               </div>
-              <p className="text-xs font-bold text-amber-200">-R$ {formatCurrency(cardTotals.total)}</p>
+              <p className="text-xs font-bold text-amber-200">-R$ {formatCurrency(totalPendingCards)}</p>
             </div>
           </div>
         </section>
