@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, CheckCircle2, Circle, Trash2, Plus, Pencil } from 'lucide-react';
+import { Search, CheckCircle2, Circle, Trash2, Plus, Pencil, FileSpreadsheet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,6 +13,8 @@ import { useCards } from '@/context/CardContext';
 import CardTransactionDialog from '@/components/cards/CardTransactionDialog';
 import { Button } from '@/components/ui/button';
 import { CardTransaction } from '@/types/transfer';
+import { exportToExcelCsv } from '@/utils/exportCsv';
+import { showSuccess, showError } from '@/utils/toast';
 
 const Cards = () => {
   const { transactions, installments, toggleInstallmentPaid, addTransaction, updateTransaction, deleteTransaction } = useCards();
@@ -62,6 +64,33 @@ const Cards = () => {
     } else {
       addTransaction(data);
     }
+  };
+
+  const handleExportCsv = () => {
+    if (filteredInstallments.length === 0) {
+      showError("Nenhuma parcela para exportar.");
+      return;
+    }
+
+    const rows = filteredInstallments.map(inst => {
+      const tx = transactions.find(t => t.id === inst.transaction_id);
+      const desc = tx
+        ? `${tx.description} (${inst.number}/${tx.installments_count}) - ${tx.recipient_name}`
+        : `Parcela ${inst.number}`;
+      const date = tx ? tx.purchase_date : inst.due_date;
+
+      return {
+        date,
+        description: desc,
+        amount: inst.amount,
+        isNegative: true
+      };
+    });
+
+    const now = new Date();
+    const dateFormatted = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    exportToExcelCsv(`cartao_credito_${dateFormatted}`, rows);
+    showSuccess(`${rows.length} parcelas exportadas para Excel (CSV)!`);
   };
 
   const InstallmentItem = ({ inst }: { inst: any }) => {

@@ -10,11 +10,14 @@ import { useCards } from '@/context/CardContext';
 import { useBills } from '@/context/BillContext';
 import { 
   Search, ArrowUpRight, ArrowDownLeft, CreditCard, Receipt, 
-  CheckCircle2, Clock, Filter, History as HistoryIcon 
+  CheckCircle2, Clock, History as HistoryIcon, FileSpreadsheet 
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { exportToExcelCsv } from '@/utils/exportCsv';
+import { showSuccess, showError } from '@/utils/toast';
 
 const History = () => {
   const { transfers } = useTransfers();
@@ -31,6 +34,7 @@ const History = () => {
       id: string;
       title: string;
       subtitle: string;
+      responsible: string;
       date: Date;
       amount: number;
       isNegative: boolean;
@@ -45,6 +49,7 @@ const History = () => {
         id: `pix-${t.id}`,
         title: t.description,
         subtitle: `${t.friend_name} • PIX ${t.type === 'in' ? 'Recebido' : 'Enviado'}`,
+        responsible: t.friend_name || 'Geral',
         date: t.date,
         amount: t.amount,
         isNegative: t.type === 'out',
@@ -65,6 +70,7 @@ const History = () => {
         id: `card-${inst.id}`,
         title: `${tx.description} (${inst.number}/${tx.installments_count})`,
         subtitle: `${tx.recipient_name} • Cartão de Crédito`,
+        responsible: tx.recipient_name || 'Geral',
         date: date,
         amount: inst.amount,
         isNegative: true,
@@ -80,6 +86,7 @@ const History = () => {
         id: `bill-${b.id}`,
         title: b.title,
         subtitle: `${b.category || 'Geral'} • Boleto`,
+        responsible: b.category || 'Geral',
         date: b.dueDate,
         amount: b.amount,
         isNegative: true,
@@ -97,7 +104,8 @@ const History = () => {
   const filteredItems = useMemo(() => {
     return allHistoryItems.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) || 
-                            item.subtitle.toLowerCase().includes(search.toLowerCase());
+                            item.subtitle.toLowerCase().includes(search.toLowerCase()) ||
+                            item.responsible.toLowerCase().includes(search.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
@@ -110,17 +118,51 @@ const History = () => {
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const handleExportCsv = () => {
+    if (filteredItems.length === 0) {
+      showError("Nenhum lançamento para exportar com os filtros atuais.");
+      return;
+    }
+
+    const rows = filteredItems.map(item => ({
+      date: item.date,
+      description: item.title,
+      status: item.status === 'completed' ? 'Pago' : 'Pendente',
+      responsible: item.responsible,
+      amount: item.amount,
+      isNegative: item.isNegative
+    }));
+
+    const now = new Date();
+    const dateFormatted = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    exportToExcelCsv(`extrato_${categoryFilter}_${statusFilter}_${dateFormatted}`, rows);
+    showSuccess(`${rows.length} lançamentos exportados para Excel!`);
+  };
+
   return (
     <AppShell>
       <div className="space-y-4">
-        <header className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 rounded-2xl">
-            <HistoryIcon size={24} />
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 rounded-2xl">
+              <HistoryIcon size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold dark:text-white">Extrato & Histórico Geral</h2>
+              <p className="text-xs text-slate-500">Todas as transações, boletos e cartões</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold dark:text-white">Extrato & Histórico Geral</h2>
-            <p className="text-xs text-slate-500">Todas as transações, boletos e cartões</p>
-          </div>
+
+          {/* Botão de Exportar para Excel CSV */}
+          <Button
+            onClick={handleExportCsv}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 rounded-xl h-11 px-3.5 shadow-sm transition-all flex items-center shrink-0"
+            title="Exportar para Excel (CSV): Data, Descrição, Status, Responsável, Valor"
+          >
+            <FileSpreadsheet size={18} />
+            <span className="text-xs font-bold hidden sm:inline">Exportar Excel</span>
+            <span className="text-xs font-bold sm:hidden">Exportar</span>
+          </Button>
         </header>
 
         {/* Busca */}
